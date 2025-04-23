@@ -70,16 +70,18 @@ func LexerTest() {
 		panic(err)
 	}
 	fmt.Print(log.Sprintf(
-		log.Argument{Highlight: true, Format: "Lexer Test\n", Args: []any{}},
-		log.Argument{Highlight: true, Format: "Got ", Args: []any{}},
+		Divider(),
+		log.Argument{Highlight: true, Format: "*** Lexer Test ***\n", Args: []any{}},
+		log.Argument{Highlight: true, Format: "*** Got ", Args: []any{}},
 		log.Argument{FrontColor: log.Magenta, Highlight: true, Format: "%d ", Args: []any{len(files)}},
-		log.Argument{Highlight: true, Format: "Files\n", Args: []any{}},
+		log.Argument{Highlight: true, Format: "Files ***\n", Args: []any{}},
 		Divider(),
 	))
 
 	for _, file := range files {
 		fmt.Print(log.Sprintf(
-			log.Argument{FrontColor: log.Green, Highlight: true, Format: "+ %s\n", Args: []any{file.path}},
+			log.Argument{Highlight: true, Format: "<< ", Args: []any{}},
+			log.Argument{FrontColor: log.Green, Highlight: true, Format: "%s\n", Args: []any{file.path}},
 		))
 	}
 
@@ -94,7 +96,7 @@ func LexerTest() {
 	}
 
 	fmt.Print(log.Sprintf(
-		log.Argument{FrontColor: log.Red, Highlight: true, Format: "Starting tests...\n", Args: []any{}},
+		log.Argument{FrontColor: log.Red, Highlight: true, Format: "!!! Starting tests... !!!\n", Args: []any{}},
 		Divider(),
 	))
 
@@ -117,20 +119,24 @@ func LexerTest() {
 			err = StartSingleLexerTest(file.path, result)
 			if err != nil {
 				fmt.Println(
-					log.Sprintf(log.Argument{FrontColor: log.Red, Highlight: true, Format: "System Error: %s", Args: []any{err.Error()}}),
+					log.Sprintf(log.Argument{FrontColor: log.Red, Highlight: true, Format: "!!! System Error: %s", Args: []any{err.Error()}}),
 				)
 			}
 
 			fmt.Println(
-				log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: "Test for %s finished, consume %d ms", Args: []any{file.path, time.Since(st).Milliseconds()}}),
+				log.Sprintf(log.Argument{Highlight: true, Format: ">> Test for", Args: []any{}}),
+				log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: "%s", Args: []any{file.path}}),
+				log.Sprintf(log.Argument{Highlight: true, Format: "finished, consume", Args: []any{}}),
+				log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: "%d ms", Args: []any{time.Since(st).Milliseconds()}}),
 			)
 		}(file)
 	}
 	wg.Wait()
 
-	fmt.Println(log.Sprintf(
+	fmt.Print(log.Sprintf(
 		Divider(),
-		log.Argument{FrontColor: log.Green, Highlight: true, Format: "All tests finished", Args: []any{}},
+		log.Argument{FrontColor: log.Red, Highlight: true, Format: "!!! All tests finished !!!\n", Args: []any{}},
+		Divider(),
 	))
 }
 
