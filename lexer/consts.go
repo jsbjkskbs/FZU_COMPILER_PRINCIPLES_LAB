@@ -14,6 +14,7 @@ const (
 	INTEGER
 	FLOAT
 	STRING
+	CHAR
 	OPERATOR
 	DELIMITER
 	RESERVED
@@ -34,6 +35,8 @@ func (i ItemType) ToString() string {
 		return "浮点数"
 	case STRING:
 		return "字符串"
+	case CHAR:
+		return "字符"
 	case OPERATOR:
 		return "运算符"
 	case DELIMITER:
