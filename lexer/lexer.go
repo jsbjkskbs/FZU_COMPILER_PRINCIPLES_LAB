@@ -59,21 +59,24 @@ func (l *Lexer) NextToken() (Token, error) {
 				break
 			}
 			if r == '\\' {
+				if escape {
+					s += "\\"
+				}
 				escape = !escape
 				continue
 			}
 			if escape {
 				switch r {
 				case 'n':
-					s += "\\n"
+					s += "\n"
 				case 't':
-					s += "\\t"
+					s += "\t"
 				case 'r':
-					s += "\\r"
+					s += "\r"
 				case 'b':
-					s += "\\b"
+					s += "\b"
 				case 'f':
-					s += "\\f"
+					s += "\f"
 				default:
 					s += string(r)
 				}
@@ -98,7 +101,7 @@ func (l *Lexer) NextToken() (Token, error) {
 			}
 			if r == '\\' {
 				if escape {
-					s += "'"
+					s += "\\"
 				}
 				escape = !escape
 				continue
@@ -106,15 +109,15 @@ func (l *Lexer) NextToken() (Token, error) {
 			if escape {
 				switch r {
 				case 'n':
-					s += "\\n"
+					s += "\n"
 				case 't':
-					s += "\\t"
+					s += "\t"
 				case 'r':
-					s += "\\r"
+					s += "\r"
 				case 'b':
-					s += "\\b"
+					s += "\b"
 				case 'f':
-					s += "\\f"
+					s += "\f"
 				default:
 					s += string(r)
 				}
