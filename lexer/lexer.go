@@ -85,7 +85,45 @@ func (l *Lexer) NextToken() (Token, error) {
 		return Token{Type: STRING, Val: s, Line: l._line, Pos: l._pos}, nil
 	}
 
-	if utils.IsLetter(r) {
+	if r == '\'' {
+		s := ""
+		escape := false
+		for {
+			r, err := l.nextRune()
+			if err != nil {
+				return Token{}, fmt.Errorf("char not closed, line: %d, pos: %d", l._line, l._pos)
+			}
+			if r == '\'' && !escape {
+				break
+			}
+			if r == '\\' {
+				escape = !escape
+				continue
+			}
+			if escape {
+				switch r {
+				case 'n':
+					s += "\\n"
+				case 't':
+					s += "\\t"
+				case 'r':
+					s += "\\r"
+				case 'b':
+					s += "\\b"
+				case 'f':
+					s += "\\f"
+				default:
+					s += string(r)
+				}
+				escape = false
+				continue
+			}
+			s += string(r)
+		}
+		return Token{Type: CHAR, Val: s, Line: l._line, Pos: l._pos}, nil
+	}
+
+	if utils.IsLetter(r) || r == '_' {
 		s := string(r)
 		for {
 			r, err := l.nextRune()
