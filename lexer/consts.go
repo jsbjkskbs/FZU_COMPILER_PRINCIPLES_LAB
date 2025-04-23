@@ -9,7 +9,7 @@ import (
 type ItemType uint8
 
 const (
-	EOF ItemType = iota
+	EOF ItemType = iota + 1
 	TYPE
 	INTEGER
 	FLOAT
