@@ -172,6 +172,8 @@ func (l *Lexer) NextToken() (Token, error) {
 			return Token{Type: FLOAT, Val: s, Line: l._line, Pos: l._pos}, nil
 		} else if dotCount == 0 {
 			return Token{Type: INTEGER, Val: s, Line: l._line, Pos: l._pos}, nil
+		} else {
+			return Token{}, fmt.Errorf("illegal number[too many dots] %s, line: %d, pos: %d", s, l._line, l._pos)
 		}
 	}
 
