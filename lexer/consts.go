@@ -75,6 +75,6 @@ var _Delimiters = func() Set[string] {
 
 var _ReservedWords = func() Set[string] {
 	s := New[string]()
-	s.AddAll("break", "case", "chan", "const", "continue", "default", "defer", "do", "else", "false", "for", "func", "go", "goto", "if", "import", "interface", "map", "package", "range", "return", "select", "struct", "switch", "true", "type", "var")
+	s.AddAll("break", "case", "chan", "const", "continue", "default", "defer", "do", "else", "false", "for", "func", "go", "goto", "if", "import", "interface", "map", "package", "range", "return", "select", "struct", "switch", "true", "type", "var", "rune")
 	return s
 }
