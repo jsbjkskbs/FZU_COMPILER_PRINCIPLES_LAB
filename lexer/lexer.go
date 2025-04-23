@@ -46,10 +46,36 @@ func (l *Lexer) NextToken() (Token, error) {
 
 	if r == '"' {
 		s := ""
+		escape := false
 		for {
 			r, err := l.nextRune()
-			if err != nil || r == '"' {
+			if err != nil {
+				return Token{}, fmt.Errorf("string not closed, line: %d, pos: %d", l._line, l._pos)
+			}
+			if r == '"' && !escape {
 				break
+			}
+			if r == '\\' {
+				escape = !escape
+				continue
+			}
+			if escape {
+				switch r {
+				case 'n':
+					s += "\\n"
+				case 't':
+					s += "\\t"
+				case 'r':
+					s += "\\r"
+				case 'b':
+					s += "\\b"
+				case 'f':
+					s += "\\f"
+				default:
+					s += string(r)
+				}
+				escape = false
+				continue
 			}
 			s += string(r)
 		}
