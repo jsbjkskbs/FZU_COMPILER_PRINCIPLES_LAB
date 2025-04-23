@@ -97,6 +97,9 @@ func (l *Lexer) NextToken() (Token, error) {
 				break
 			}
 			if r == '\\' {
+				if escape {
+					s += "'"
+				}
 				escape = !escape
 				continue
 			}
