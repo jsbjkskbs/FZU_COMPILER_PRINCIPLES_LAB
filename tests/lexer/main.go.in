@@ -15,56 +15,7 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		println("Usage: go run main.go <mode>")
-		return
-	}
-
-	mode := os.Args[1]
-	switch mode {
-	case "lexer":
-		LexerTest()
-	default:
-		println("Unknown mode:", mode)
-	}
-
-}
-
-type FileInfo struct {
-	info os.FileInfo
-	path string
-}
-
-func GetDirFiles(dir string) ([]FileInfo, error) {
-	var files []FileInfo
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		info, err := entry.Info()
-		if err != nil {
-			return nil, err
-		}
-		files = append(files, FileInfo{info: info, path: filepath.Join(dir, entry.Name())})
-	}
-
-	return files, nil
-}
-
-func Divider() log.Argument {
-	return log.Argument{
-		Highlight: true,
-		Format:    "====================\n",
-	}
-}
-
-// LexerTest runs the lexer test on all files in the tests/lexer directory
-func LexerTest() {
+	// Lexer
 	files, err := GetDirFiles("tests/lexer")
 	if err != nil {
 		panic(err)
@@ -114,7 +65,7 @@ func LexerTest() {
 					panic(err)
 				}
 			}(result)
-			err = StartSingleLexerTest(file.path, result)
+			err = LexerTest(file.path, result)
 			if err != nil {
 				fmt.Println(
 					log.Sprintf(log.Argument{FrontColor: log.Red, Highlight: true, Format: "System Error: %s", Args: []any{err.Error()}}),
@@ -134,8 +85,40 @@ func LexerTest() {
 	))
 }
 
-// StartSingleLexerTest runs the lexer test on a single file
-func StartSingleLexerTest(filename string, writer io.Writer) error {
+type FileInfo struct {
+	info os.FileInfo
+	path string
+}
+
+func GetDirFiles(dir string) ([]FileInfo, error) {
+	var files []FileInfo
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, FileInfo{info: info, path: filepath.Join(dir, entry.Name())})
+	}
+
+	return files, nil
+}
+
+func Divider() log.Argument {
+	return log.Argument{
+		Highlight: true,
+		Format:    "====================\n",
+	}
+}
+
+func LexerTest(filename string, writer io.Writer) error {
 	file, err := mmap.NewMMapReader(filename)
 	if err != nil {
 		panic(err)

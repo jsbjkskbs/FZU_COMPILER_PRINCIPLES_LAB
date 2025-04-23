@@ -179,9 +179,6 @@ func (l *Lexer) ReadString() (Token, error) {
 			escape = false
 			continue
 		}
-		if r == '\n' {
-			return Token{}, fmt.Errorf("string not closed, line %d, pos %d", l._line, l._pos)
-		}
 		s += string(r)
 	}
 	return Token{Type: STRING, Val: s, Line: l._line, Pos: l._pos}, nil
@@ -193,8 +190,8 @@ func (l *Lexer) ReadChar() (Token, error) {
 	width := 0
 	for {
 		r, err := l.nextRune()
-		if errors.Is(err, io.EOF) {
-			return Token{}, fmt.Errorf("char not closed, line %d, pos %d", l._line, l._pos)
+		if err != nil {
+			return Token{}, err
 		}
 		if r == '\'' && !escape {
 			break
