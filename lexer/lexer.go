@@ -150,17 +150,27 @@ func (l *Lexer) NextToken() (Token, error) {
 
 	if utils.IsDigit(r) {
 		s := string(r)
+		illegalSuffix := false
 		for {
-			r, err := l.nextRune()
-			if err != nil || !(utils.IsDigit(r) || r == '.') {
+			nr, err := l.nextRune()
+			if err != nil || !(utils.IsDigit(nr) || utils.IsLetter(nr) || nr == '_' || nr == '.') {
 				l.retract()
 				break
 			}
-			s += string(r)
+			if utils.IsLetter(nr) || nr == '_' {
+				illegalSuffix = true
+			}
+			s += string(nr)
 		}
-		if strings.Contains(s, ".") {
+		if illegalSuffix {
+			return Token{}, fmt.Errorf("illegal number[suffix] %s, line: %d, pos: %d", s, l._line, l._pos)
+		} else if len(s) > 1 && s[0] == '0' {
+			return Token{}, fmt.Errorf("illegal number[leading zero] %s, line: %d, pos: %d", s, l._line, l._pos)
+		}
+		dotCount := strings.Count(s, ".")
+		if dotCount == 1 {
 			return Token{Type: FLOAT, Val: s, Line: l._line, Pos: l._pos}, nil
-		} else {
+		} else if dotCount == 0 {
 			return Token{Type: INTEGER, Val: s, Line: l._line, Pos: l._pos}, nil
 		}
 	}
