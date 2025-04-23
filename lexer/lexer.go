@@ -85,7 +85,7 @@ func (l *Lexer) NextToken() (Token, error) {
 		return Token{Type: STRING, Val: s, Line: l._line, Pos: l._pos}, nil
 	}
 
-	if utils.IsLetter(r) {
+	if utils.IsLetter(r) || r == '_' {
 		s := string(r)
 		for {
 			r, err := l.nextRune()
