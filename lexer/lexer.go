@@ -39,6 +39,9 @@ func (l *Lexer) NextToken() (Token, error) {
 		if nextRune == '/' {
 			l.skipAnnotation()
 			return l.NextToken()
+		} else if nextRune == '*' {
+			l.skipAnnotation2()
+			return l.NextToken()
 		} else {
 			l.retract()
 		}
@@ -174,6 +177,24 @@ func (l *Lexer) skipAnnotation() {
 		r, err := l.nextRune()
 		if err != nil || r == '\n' {
 			break
+		}
+	}
+}
+
+func (l *Lexer) skipAnnotation2() {
+	for {
+		r1, err := l.nextRune()
+		if err != nil {
+			break
+		}
+		if r1 == '*' {
+			r2, err := l.nextRune()
+			if err != nil {
+				break
+			}
+			if r2 == '/' {
+				break
+			}
 		}
 	}
 }
