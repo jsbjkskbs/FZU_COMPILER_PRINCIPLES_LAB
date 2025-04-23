@@ -19,10 +19,8 @@ func LexerAct(str string) (tokens []lexer.Token, errCount int) {
 	l := lexer.NewLexer(strings.NewReader(str))
 	for {
 		token, err := l.NextToken()
-		if err != nil {
-			if !errors.Is(err, io.EOF) {
-				errCount++
-			}
+		if err != nil && !errors.Is(err, io.EOF) {
+			errCount++
 			if !Silent {
 				fmt.Println(
 					log.Sprintf(log.Argument{FrontColor: log.Red, Highlight: true, Format: "Error: %s", Args: []any{err.Error()}}),
@@ -32,16 +30,18 @@ func LexerAct(str string) (tokens []lexer.Token, errCount int) {
 		if token.Type == lexer.EOF {
 			break
 		}
-		if err == nil {
-			if !Silent {
-				fmt.Printf(
-					"(%s, %s)\n",
-					log.Sprintf(log.Argument{FrontColor: log.Green, Format: "%s", Args: []any{token.Type.ToString()}}),
-					log.Sprintf(log.Argument{FrontColor: log.Yellow, Format: "%s", Args: []any{token.Val}}),
-				)
-			}
+		if err == nil && !Silent {
+			fmt.Printf(
+				"(%s, %s)\n",
+				log.Sprintf(log.Argument{FrontColor: log.Green, Format: "%s", Args: []any{token.Type.ToString()}}),
+				log.Sprintf(log.Argument{FrontColor: log.Yellow, Format: "%s", Args: []any{token.Val}}),
+			)
+
 		}
 		tokens = append(tokens, token)
+		if errors.Is(err, io.EOF) {
+			break
+		}
 	}
 	return
 }
@@ -339,7 +339,8 @@ Line 2"
 	},
 	{
 		name: "String Not Closed",
-		str: `// 字符串未闭合
+		str: `
+// 字符串未闭合
 "Hello, World!
 `,
 		expectedTokens:     make([]lexer.Token, 0),

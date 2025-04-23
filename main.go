@@ -156,22 +156,20 @@ func StartSingleLexerTest(filename string, writer io.Writer) error {
 
 	for {
 		token, err := l.NextToken()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
+		if err != nil && !errors.Is(err, io.EOF) {
+			_, err2 := fmt.Fprintf(writer, "Error: %s\n", err.Error())
+			if err2 != nil {
+				return err2
 			}
-			_, err := fmt.Fprintf(writer, "Error: %s\n", err.Error())
+		}
+		if token.Type == lexer.EOF || errors.Is(err, io.EOF) {
+			break
+		}
+		if token.Type != 0 {
+			_, err = fmt.Fprintf(writer, "(%s, %s)\n", token.Type.ToString(), token.Val)
 			if err != nil {
 				return err
 			}
-			return err
-		}
-		if token.Type == lexer.EOF {
-			break
-		}
-		_, err = fmt.Fprintf(writer, "(%s, %s)\n", token.Type.ToString(), token.Val)
-		if err != nil {
-			return err
 		}
 	}
 	_, err = fmt.Fprintln(writer)

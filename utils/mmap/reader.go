@@ -1,7 +1,6 @@
 package mmap
 
 import (
-	"fmt"
 	"io"
 
 	"golang.org/x/exp/mmap"
@@ -45,7 +44,6 @@ func (m *Reader) Read(p []byte) (n int, err error) {
 		return n, io.EOF
 	}
 	if n < len(p) {
-		fmt.Printf("Read %d bytes, expected %d bytes\n", n, len(p))
 		return n, io.EOF
 	}
 

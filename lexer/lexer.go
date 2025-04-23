@@ -38,15 +38,31 @@ func (l *Lexer) NextToken() (Token, error) {
 	}
 
 	if r == '/' {
-		nextRune, _ := l.nextRune()
-		if nextRune == '/' {
-			l.skipAnnotation()
-			return l.NextToken()
-		} else if nextRune == '*' {
-			l.skipAnnotation2()
-			return l.NextToken()
-		} else {
+		nextRune, err := l.nextRune()
+		if errors.Is(err, io.EOF) {
 			l.retract()
+		} else {
+			if nextRune == '/' {
+				err := l.skipAnnotation()
+				if err != nil {
+					if errors.Is(err, io.EOF) {
+						return Token{Type: EOF}, nil
+					}
+					return Token{}, err
+				}
+				return l.NextToken()
+			} else if nextRune == '*' {
+				err := l.skipAnnotation2()
+				if err != nil {
+					if errors.Is(err, io.EOF) {
+						return Token{Type: EOF}, nil
+					}
+					return Token{}, err
+				}
+				return l.NextToken()
+			} else {
+				l.retract()
+			}
 		}
 	}
 
@@ -77,15 +93,28 @@ func (l *Lexer) NextToken() (Token, error) {
 	return Token{}, fmt.Errorf("unknown character: %c, at line %d, pos %d", r, l._line, l._pos)
 }
 
+func (l *Lexer) peekNextRune() rune {
+	r, _, err := l._reader.ReadRune()
+	if err != nil {
+		return 0
+	}
+	l.retract()
+	return r
+}
+
 func (l *Lexer) nextRune() (rune, error) {
 	r, _, err := l._reader.ReadRune()
 	if err != nil {
 		return 0, err
 	}
-	if r == '\n' {
+	if r == '\n' || (r == '\r' && l.peekNextRune() == '\n') {
+		if r == '\r' {
+			_, _ = l.nextRune() // Consume the '\n' after '\r'
+		}
 		l._line++
 		l._lineLengths = append(l._lineLengths, l._pos)
 		l._pos = 0
+		r = '\n'
 	} else {
 		l._pos++
 	}
@@ -116,28 +145,31 @@ func (l *Lexer) skipWhiteSpace() error {
 	}
 }
 
-func (l *Lexer) skipAnnotation() {
+func (l *Lexer) skipAnnotation() error {
 	for {
 		r, err := l.nextRune()
-		if err != nil || r == '\n' {
-			break
+		if err != nil {
+			return err
+		}
+		if r == '\n' {
+			return nil
 		}
 	}
 }
 
-func (l *Lexer) skipAnnotation2() {
+func (l *Lexer) skipAnnotation2() error {
 	for {
 		r1, err := l.nextRune()
 		if err != nil {
-			break
+			return err
 		}
 		if r1 == '*' {
 			r2, err := l.nextRune()
 			if err != nil {
-				break
+				return err
 			}
 			if r2 == '/' {
-				break
+				return nil
 			}
 		}
 	}
@@ -149,7 +181,11 @@ func (l *Lexer) ReadString() (Token, error) {
 	for {
 		r, err := l.nextRune()
 		if err != nil {
-			return Token{}, fmt.Errorf("string not closed, line %d, pos %d", l._line, l._pos)
+			if errors.Is(err, io.EOF) {
+				return Token{Type: EOF}, fmt.Errorf("string not closed, line %d, pos %d", l._line, l._pos)
+			} else {
+				return Token{}, err
+			}
 		}
 		if r == '"' && !escape {
 			break
@@ -180,7 +216,11 @@ func (l *Lexer) ReadString() (Token, error) {
 			continue
 		}
 		if r == '\n' {
-			return Token{}, fmt.Errorf("string not closed, line %d, pos %d", l._line, l._pos)
+			if errors.Is(err, io.EOF) {
+				return Token{Type: EOF}, fmt.Errorf("string not closed, line %d, pos %d", l._line-1, l._lineLengths[l._line-1])
+			} else {
+				return Token{}, fmt.Errorf("string not closed, line %d, pos %d", l._line-1, l._lineLengths[l._line-1])
+			}
 		}
 		s += string(r)
 	}
@@ -193,8 +233,12 @@ func (l *Lexer) ReadChar() (Token, error) {
 	width := 0
 	for {
 		r, err := l.nextRune()
-		if errors.Is(err, io.EOF) {
-			return Token{}, fmt.Errorf("char not closed, line %d, pos %d", l._line, l._pos)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return Token{Type: EOF}, fmt.Errorf("char not closed, line %d, pos %d", l._line, l._pos)
+			} else {
+				return Token{}, err
+			}
 		}
 		if r == '\'' && !escape {
 			break
@@ -237,29 +281,39 @@ func (l *Lexer) ReadChar() (Token, error) {
 
 func (l *Lexer) ReadWord(r rune) (Token, error) {
 	s := string(r)
+	var errWhenPassed error
 	for {
 		r, err := l.nextRune()
 		if err != nil || !(utils.IsLetter(r) || utils.IsDigit(r) || r == '_') {
+			if errors.Is(err, io.EOF) {
+				errWhenPassed = io.EOF
+			}
 			l.retract()
 			break
 		}
 		s += string(r)
 	}
 	if _BasicType.Contains(s) {
-		return Token{Type: TYPE, Val: s, Line: l._line, Pos: l._pos}, nil
+		return Token{Type: TYPE, Val: s, Line: l._line, Pos: l._pos}, errWhenPassed
 	} else if _ReservedWords.Contains(s) {
-		return Token{Type: RESERVED, Val: s, Line: l._line, Pos: l._pos}, nil
+		return Token{Type: RESERVED, Val: s, Line: l._line, Pos: l._pos}, errWhenPassed
 	} else {
-		return Token{Type: IDENTIFIER, Val: s, Line: l._line, Pos: l._pos}, nil
+		return Token{Type: IDENTIFIER, Val: s, Line: l._line, Pos: l._pos}, errWhenPassed
 	}
 }
 
 func (l *Lexer) ReadNumber(r rune) (Token, error) {
 	s := string(r)
 	illegalSuffix := false
+	tokenWhenWrong := Token{}
+	var errWhenPassed error
 	for {
 		nr, err := l.nextRune()
 		if err != nil || !(utils.IsDigit(nr) || utils.IsLetter(nr) || nr == '_' || nr == '.') {
+			if errors.Is(err, io.EOF) {
+				tokenWhenWrong.Type = EOF
+				errWhenPassed = io.EOF
+			}
 			l.retract()
 			break
 		}
@@ -269,22 +323,22 @@ func (l *Lexer) ReadNumber(r rune) (Token, error) {
 		s += string(nr)
 	}
 	if illegalSuffix {
-		return Token{}, fmt.Errorf("illegal number[suffix] %s, at line %d, pos %d", s, l._line, l._pos)
+		return tokenWhenWrong, fmt.Errorf("illegal number[suffix] %s, at line %d, pos %d", s, l._line, l._pos)
 	}
 	dotCount := strings.Count(s, ".")
 	if dotCount == 1 {
 		if strings.HasPrefix(s, "00") {
-			return Token{}, fmt.Errorf("illegal number[float] %s, at line %d, pos %d", s, l._line, l._pos)
+			return tokenWhenWrong, fmt.Errorf("illegal number[float] %s, at line %d, pos %d", s, l._line, l._pos)
 		}
-		return Token{Type: FLOAT, Val: s, Line: l._line, Pos: l._pos}, nil
+		return Token{Type: FLOAT, Val: s, Line: l._line, Pos: l._pos}, errWhenPassed
 	} else if dotCount == 0 {
 		if strings.HasPrefix(s, "0") {
 			if len(s) > 1 {
-				return Token{}, fmt.Errorf("illegal number[integer] %s, at line %d, pos %d", s, l._line, l._pos)
+				return tokenWhenWrong, fmt.Errorf("illegal number[integer] %s, at line %d, pos %d", s, l._line, l._pos)
 			}
 		}
-		return Token{Type: INTEGER, Val: s, Line: l._line, Pos: l._pos}, nil
+		return Token{Type: INTEGER, Val: s, Line: l._line, Pos: l._pos}, errWhenPassed
 	} else {
-		return Token{}, fmt.Errorf("illegal number[too many dots] %s, at line %d, pos %d", s, l._line, l._pos)
+		return tokenWhenWrong, fmt.Errorf("illegal number[too many dots] %s, at line %d, pos %d", s, l._line, l._pos)
 	}
 }
