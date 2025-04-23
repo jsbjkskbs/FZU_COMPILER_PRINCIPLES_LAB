@@ -53,7 +53,7 @@ func (l *Lexer) NextToken() (Token, error) {
 		for {
 			r, err := l.nextRune()
 			if err != nil {
-				return Token{}, fmt.Errorf("string not closed, line: %d, pos: %d", l._line, l._pos)
+				return Token{}, fmt.Errorf("string not closed, line %d, pos %d", l._line, l._pos)
 			}
 			if r == '"' && !escape {
 				break
@@ -94,7 +94,7 @@ func (l *Lexer) NextToken() (Token, error) {
 		for {
 			r, err := l.nextRune()
 			if err != nil {
-				return Token{}, fmt.Errorf("char not closed, line: %d, pos: %d", l._line, l._pos)
+				return Token{}, err
 			}
 			if r == '\'' && !escape {
 				break
@@ -163,15 +163,17 @@ func (l *Lexer) NextToken() (Token, error) {
 			s += string(nr)
 		}
 		if illegalSuffix {
-			return Token{}, fmt.Errorf("illegal number[suffix] %s, line: %d, pos: %d", s, l._line, l._pos)
+			return Token{}, fmt.Errorf("illegal number[suffix] %s, at line %d, pos %d", s, l._line, l._pos)
 		} else if len(s) > 1 && s[0] == '0' {
-			return Token{}, fmt.Errorf("illegal number[leading zero] %s, line: %d, pos: %d", s, l._line, l._pos)
+			return Token{}, fmt.Errorf("illegal number[leading zero] %s, at line %d, pos %d", s, l._line, l._pos)
 		}
 		dotCount := strings.Count(s, ".")
 		if dotCount == 1 {
 			return Token{Type: FLOAT, Val: s, Line: l._line, Pos: l._pos}, nil
 		} else if dotCount == 0 {
 			return Token{Type: INTEGER, Val: s, Line: l._line, Pos: l._pos}, nil
+		} else {
+			return Token{}, fmt.Errorf("illegal number[too many dots] %s, at line %d, pos %d", s, l._line, l._pos)
 		}
 	}
 
@@ -183,7 +185,7 @@ func (l *Lexer) NextToken() (Token, error) {
 		return Token{Type: DELIMITER, Val: string(r), Line: l._line, Pos: l._pos}, nil
 	}
 
-	return Token{}, fmt.Errorf("unknown character: %c, line: %d, pos: %d", r, l._line, l._pos)
+	return Token{}, fmt.Errorf("unknown character: %c, at line %d, pos %d", r, l._line, l._pos)
 }
 
 func (l *Lexer) nextRune() (rune, error) {
