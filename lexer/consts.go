@@ -61,7 +61,8 @@ type Token struct {
 }
 
 func (t *Token) String() string {
-	return fmt.Sprintf("(%s, %s, CharAt{Line: %d, Pos: %d})", t.Type.ToString(), t.Val, t.Line, t.Pos)
+	// return fmt.Sprintf("(%s, %s, CharAt{Line: %d, Pos: %d})", t.Type.ToString(), t.Val, t.Line, t.Pos)
+	return fmt.Sprintf("(%s, %s)", t.Type.ToString(), t.Val)
 }
 
 var _BasicType = func() Set[string] {
