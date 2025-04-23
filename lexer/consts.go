@@ -1,6 +1,8 @@
 package lexer
 
 import (
+	"fmt"
+
 	. "app/utils/set"
 )
 
@@ -55,6 +57,10 @@ type Token struct {
 	Line, Pos int64
 }
 
+func (t *Token) String() string {
+	return fmt.Sprintf("(%s, %s, CharAt{Line: %d, Pos: %d})", t.Type.ToString(), t.Val, t.Line, t.Pos)
+}
+
 var _BasicType = func() Set[string] {
 	s := New[string]()
 	s.AddAll("int", "float", "string", "bool", "byte")
@@ -77,4 +83,4 @@ var _ReservedWords = func() Set[string] {
 	s := New[string]()
 	s.AddAll("break", "case", "chan", "const", "continue", "default", "defer", "do", "else", "false", "for", "func", "go", "goto", "if", "import", "interface", "map", "package", "range", "return", "select", "struct", "switch", "true", "type", "var", "rune")
 	return s
-}
+}()
