@@ -164,13 +164,19 @@ func (l *Lexer) NextToken() (Token, error) {
 		}
 		if illegalSuffix {
 			return Token{}, fmt.Errorf("illegal number[suffix] %s, at line %d, pos %d", s, l._line, l._pos)
-		} else if len(s) > 1 && s[0] == '0' {
-			return Token{}, fmt.Errorf("illegal number[leading zero] %s, at line %d, pos %d", s, l._line, l._pos)
 		}
 		dotCount := strings.Count(s, ".")
 		if dotCount == 1 {
+			if strings.HasPrefix(s, "00") {
+				return Token{}, fmt.Errorf("illegal number[float] %s, at line %d, pos %d", s, l._line, l._pos)
+			}
 			return Token{Type: FLOAT, Val: s, Line: l._line, Pos: l._pos}, nil
 		} else if dotCount == 0 {
+			if strings.HasPrefix(s, "0") {
+				if len(s) > 1 {
+					return Token{}, fmt.Errorf("illegal number[integer] %s, at line %d, pos %d", s, l._line, l._pos)
+				}
+			}
 			return Token{Type: INTEGER, Val: s, Line: l._line, Pos: l._pos}, nil
 		} else {
 			return Token{}, fmt.Errorf("illegal number[too many dots] %s, at line %d, pos %d", s, l._line, l._pos)
