@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
@@ -20,6 +21,8 @@ func main() {
 		return
 	}
 
+	EnvChecker()
+
 	mode := os.Args[1]
 	switch mode {
 	case "lexer":
@@ -28,6 +31,20 @@ func main() {
 		println("Unknown mode:", mode)
 	}
 
+}
+
+func EnvChecker() {
+	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" && runtime.GOOS != "unix" {
+		fmt.Println(
+			log.Sprintf(log.Argument{FrontColor: log.Yellow, Highlight: true, Format: "====================", Args: []any{}}),
+			log.Sprintf(log.Argument{FrontColor: log.Yellow, Highlight: true, Format: "\n+++++++ Warn +++++++", Args: []any{}}),
+			log.Sprintf(log.Argument{FrontColor: log.Yellow, Highlight: true, Format: "\nThis program may not", Args: []any{}}),
+			log.Sprintf(log.Argument{FrontColor: log.Yellow, Highlight: true, Format: "\nperform correctly on", Args: []any{}}),
+			log.Sprintf(log.Argument{FrontColor: log.Yellow, Highlight: true, Format: "\nnon-linux/unix OS.", Args: []any{}}),
+			log.Sprintf(log.Argument{FrontColor: log.Yellow, Highlight: true, Format: "\n+++++++ Warn +++++++", Args: []any{}}),
+			log.Sprintf(log.Argument{FrontColor: log.Yellow, Highlight: true, Format: "\n====================", Args: []any{}}),
+		)
+	}
 }
 
 type FileInfo struct {
@@ -71,7 +88,7 @@ func LexerTest() {
 	}
 	fmt.Print(log.Sprintf(
 		Divider(),
-		log.Argument{Highlight: true, Format: "*** Lexer Test ***\n", Args: []any{}},
+		log.Argument{Highlight: true, Format: "***  Lexer Test  ***\n", Args: []any{}},
 		log.Argument{Highlight: true, Format: "*** Got ", Args: []any{}},
 		log.Argument{FrontColor: log.Magenta, Highlight: true, Format: "%d ", Args: []any{len(files)}},
 		log.Argument{Highlight: true, Format: "Files ***\n", Args: []any{}},
