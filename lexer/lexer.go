@@ -93,28 +93,15 @@ func (l *Lexer) NextToken() (Token, error) {
 	return Token{}, fmt.Errorf("unknown character: %c, at line %d, pos %d", r, l._line, l._pos)
 }
 
-func (l *Lexer) peekNextRune() rune {
-	r, _, err := l._reader.ReadRune()
-	if err != nil {
-		return 0
-	}
-	l.retract()
-	return r
-}
-
 func (l *Lexer) nextRune() (rune, error) {
 	r, _, err := l._reader.ReadRune()
 	if err != nil {
 		return 0, err
 	}
-	if r == '\n' || (r == '\r' && l.peekNextRune() == '\n') {
-		if r == '\r' {
-			_, _ = l.nextRune() // Consume the '\n' after '\r'
-		}
+	if r == '\n' {
 		l._line++
 		l._lineLengths = append(l._lineLengths, l._pos)
 		l._pos = 0
-		r = '\n'
 	} else {
 		l._pos++
 	}
