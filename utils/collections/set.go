@@ -1,6 +1,6 @@
 // Simple implementation of a set in Go.
 
-package set
+package collections
 
 import (
 	"fmt"
@@ -8,31 +8,44 @@ import (
 
 type Set[T comparable] map[T]struct{}
 
-// New creates a new set.
-func New[T comparable]() Set[T] {
+// NewSet creates a new set.
+func NewSet[T comparable]() Set[T] {
 	return make(Set[T])
 }
 
 // Add adds an element to the set.
-func (s Set[T]) Add(value T) {
+func (s Set[T]) Add(value T) Set[T] {
 	s[value] = struct{}{}
+	return s
 }
 
-func (s Set[T]) AddAll(values ...T) {
+func (s Set[T]) AddAll(values ...T) Set[T] {
 	for _, value := range values {
 		s.Add(value)
 	}
+	return s
 }
 
 // Remove removes an element from the set.
-func (s Set[T]) Remove(value T) {
+func (s Set[T]) Remove(value T) Set[T] {
 	delete(s, value)
+	return s
 }
 
 // Contains checks if the set contains an element.
 func (s Set[T]) Contains(value T) bool {
 	_, exists := s[value]
 	return exists
+}
+
+// ContainsFunc checks if the set contains an element that satisfies the predicate.
+func (s Set[T]) ContainsFunc(predicate func(T) bool) bool {
+	for key := range s {
+		if predicate(key) {
+			return true
+		}
+	}
+	return false
 }
 
 // Size returns the number of elements in the set.
@@ -45,15 +58,16 @@ func (s Set[T]) Size() int {
 }
 
 // Clear removes all elements from the set.
-func (s Set[T]) Clear() {
+func (s Set[T]) Clear() Set[T] {
 	for key := range s {
 		delete(s, key)
 	}
+	return s
 }
 
 // Union returns a new set that is the union of two sets.
 func (s Set[T]) Union(other Set[T]) Set[T] {
-	union := New[T]()
+	union := NewSet[T]()
 	for key := range s {
 		union.Add(key)
 	}
@@ -65,7 +79,7 @@ func (s Set[T]) Union(other Set[T]) Set[T] {
 
 // Intersection returns a new set that is the intersection of two sets.
 func (s Set[T]) Intersection(other Set[T]) Set[T] {
-	intersection := New[T]()
+	intersection := NewSet[T]()
 	for key := range s {
 		if other.Contains(key) {
 			intersection.Add(key)
@@ -76,7 +90,7 @@ func (s Set[T]) Intersection(other Set[T]) Set[T] {
 
 // Difference returns a new set that is the difference of two sets.
 func (s Set[T]) Difference(other Set[T]) Set[T] {
-	difference := New[T]()
+	difference := NewSet[T]()
 	for key := range s {
 		if !other.Contains(key) {
 			difference.Add(key)
@@ -116,17 +130,17 @@ func (s Set[T]) Elements() []T {
 
 // String returns a string representation of the set.
 func (s Set[T]) String() string {
-	str := "{"
+	str := "{{  "
 	for key := range s {
 		str += fmt.Sprintf("%v ", key)
 	}
-	str += "}"
+	str += " }}"
 	return str
 }
 
 // Copy creates a shallow copy of the set.
 func (s Set[T]) Copy() Set[T] {
-	c := New[T]()
+	c := NewSet[T]()
 	for key := range s {
 		c.Add(key)
 	}
@@ -155,7 +169,7 @@ func (s Set[T]) ForEach(f func(T)) {
 
 // Map applies a function to each element in the set and returns a new set.
 func (s Set[T]) Map(f func(T) T) Set[T] {
-	mapped := New[T]()
+	mapped := NewSet[T]()
 	for key := range s {
 		mapped.Add(f(key))
 	}
@@ -164,7 +178,7 @@ func (s Set[T]) Map(f func(T) T) Set[T] {
 
 // Filter returns a new set containing only the elements that satisfy the predicate.
 func (s Set[T]) Filter(predicate func(T) bool) Set[T] {
-	filtered := New[T]()
+	filtered := NewSet[T]()
 	for key := range s {
 		if predicate(key) {
 			filtered.Add(key)
@@ -189,4 +203,17 @@ func (s Set[T]) ToSlice() []T {
 		slice = append(slice, key)
 	}
 	return slice
+}
+
+// Equals checks if two sets are equal.
+func (s Set[T]) Equals(other Set[T]) bool {
+	if s.Size() != other.Size() {
+		return false
+	}
+	for key := range s {
+		if !other.Contains(key) {
+			return false
+		}
+	}
+	return true
 }

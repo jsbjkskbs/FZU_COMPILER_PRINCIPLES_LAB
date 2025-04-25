@@ -82,8 +82,10 @@ func (l *Lexer) NextToken() (Token, error) {
 		return l.ReadNumber(r)
 	}
 
-	if _Operators.Contains(string(r)) {
-		return Token{Type: OPERATOR, Val: string(r), Line: l._line, Pos: l._pos}, nil
+	if _Operators.ContainsFunc(func(s string) bool {
+		return strings.HasPrefix(s, string(r))
+	}) {
+		return l.ReadOperator(r)
 	}
 
 	if _Delimiters.Contains(string(r)) {
@@ -328,4 +330,52 @@ func (l *Lexer) ReadNumber(r rune) (Token, error) {
 	} else {
 		return tokenWhenWrong, fmt.Errorf("illegal number[too many dots] %s, at line %d, pos %d", s, l._line, l._pos)
 	}
+}
+
+func (l *Lexer) ReadOperator(r rune) (Token, error) {
+	prefix := string(r)
+	previousSet := _Operators
+	currentSet := previousSet.Filter(func(s string) bool {
+		return strings.HasPrefix(s, prefix)
+	})
+	bestMatch := ""
+	var errWhenPassed error
+	tokenWhenError := Token{}
+	for {
+		if currentSet.Contains(prefix) {
+			bestMatch = prefix
+		}
+
+		r, err := l.nextRune()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				errWhenPassed = io.EOF
+				tokenWhenError.Type = EOF
+			}
+			l.retract()
+			break
+		}
+		prefix += string(r)
+		currentSet = currentSet.Filter(func(s string) bool {
+			return strings.HasPrefix(s, prefix)
+		})
+
+		if currentSet.Size() == 0 {
+			l.retract()
+			break
+		}
+	}
+
+	if bestMatch == "" {
+		// impossible to reach here
+		return tokenWhenError, fmt.Errorf("illegal operator %s, at line %d, pos %d", prefix, l._line, l._pos)
+	}
+
+	// retract to the best match
+	retractStep := len(prefix) - len(bestMatch)
+	for i := 0; i < retractStep; i++ {
+		l.retract()
+	}
+
+	return Token{Type: OPERATOR, Val: bestMatch, Line: l._line, Pos: l._pos}, errWhenPassed
 }
