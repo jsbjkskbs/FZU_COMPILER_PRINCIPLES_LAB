@@ -17,3 +17,9 @@ func (p *Parser) EnsureStates() {
 		p.BuildStates()
 	}
 }
+
+func (p *Parser) EnsureTable() {
+	if p.Table == nil {
+		p.BuildTable()
+	}
+}

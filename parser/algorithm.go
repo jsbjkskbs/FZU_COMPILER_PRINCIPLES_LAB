@@ -41,10 +41,15 @@ func (p *Parser) BuildStates() {
 				Items:       p.CLOSURE(gotoItems),
 				Transitions: make(map[Symbol]*State),
 			}
-			if !p.States.Contains(newState) {
+			index := slices.IndexFunc(p.States, func(s *State) bool {
+				return s.Equals(newState)
+			})
+			if index == -1 {
 				p.States = append(p.States, newState)
 				state.Transitions[symbol] = newState
 				length++
+			} else {
+				state.Transitions[symbol] = p.States[index]
 			}
 		}
 	}

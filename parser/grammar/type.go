@@ -1,6 +1,8 @@
 package grammar
 
 import (
+	"slices"
+
 	. "app/parser/production"
 	. "app/utils/collections"
 )
@@ -25,4 +27,13 @@ func (g Grammar) IsTerminal(symbol Symbol) bool {
 
 func (g Grammar) IsNonTerminal(symbol Symbol) bool {
 	return !g.IsTerminal(symbol)
+}
+
+func (g Grammar) GetIndex(production Production) int {
+	if production.Equals(g.AugmentedProduction) {
+		return 0
+	}
+	return slices.IndexFunc(g.Productions, func(p Production) bool {
+		return p.Equals(production)
+	})
 }

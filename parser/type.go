@@ -16,6 +16,8 @@ type Parser struct {
 	FirstSet FirstSet
 
 	States States
+
+	Table *LRTable
 }
 
 func NewParser() *Parser {
