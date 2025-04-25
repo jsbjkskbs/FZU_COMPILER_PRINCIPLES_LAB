@@ -3,7 +3,7 @@ package lexer
 import (
 	"fmt"
 
-	. "app/utils/set"
+	. "app/utils/collections"
 )
 
 type ItemType uint8
@@ -66,25 +66,25 @@ func (t *Token) String() string {
 }
 
 var _BasicType = func() Set[string] {
-	s := New[string]()
+	s := NewSet[string]()
 	s.AddAll("int", "float", "string", "bool", "byte")
 	return s
 }()
 
 var _Operators = func() Set[string] {
-	s := New[string]()
+	s := NewSet[string]()
 	s.AddAll("+", "-", "*", "/", "%", "=", "==", "!=", "<", "<=", ">", ">=", "&&", "||", "++", "--", "!", "&", "|", "^", "<<", ">>")
 	return s
 }()
 
 var _Delimiters = func() Set[string] {
-	s := New[string]()
+	s := NewSet[string]()
 	s.AddAll("(", ")", "{", "}", "[", "]", ",", ";", ".", ":")
 	return s
 }()
 
 var _ReservedWords = func() Set[string] {
-	s := New[string]()
+	s := NewSet[string]()
 	s.AddAll("break", "case", "chan", "const", "continue", "default", "defer", "do", "else", "false", "for", "func", "go", "goto", "if", "import", "interface", "map", "package", "range", "return", "select", "struct", "switch", "true", "type", "var", "rune")
 	return s
 }()
