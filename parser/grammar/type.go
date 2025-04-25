@@ -21,6 +21,14 @@ func NewGrammar() *Grammar {
 	}
 }
 
+func (g Grammar) Copy() Grammar {
+	return Grammar{
+		AugmentedProduction: g.AugmentedProduction,
+		Productions:         slices.Clone(g.Productions),
+		Terminals:           g.Terminals.Copy(),
+	}
+}
+
 func (g Grammar) IsTerminal(symbol Symbol) bool {
 	return g.Terminals.Contains(Terminal(symbol))
 }

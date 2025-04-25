@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"maps"
 
 	. "app/parser/grammar"
 	. "app/parser/production"
@@ -28,7 +29,7 @@ type LRTable struct {
 func (t LRTable) Insert(state *State, grammar *Grammar) {
 	var err error
 	for _, item := range state.Items {
-		if item.Dot >= len(item.Production.Body) {
+		if item.Dot == len(item.Production.Body) || item.Production.Body[item.Dot].IsEpsilon() {
 			if item.Lookahead == TERMINATE && item.Production.Equals(grammar.AugmentedProduction) {
 				err = t.ActionTable.Register(state.Index, Action{Type: ACCEPT, Number: 0}, TERMINATE)
 			} else {
@@ -46,7 +47,7 @@ func (t LRTable) Insert(state *State, grammar *Grammar) {
 			}
 		}
 		if err != nil {
-			fmt.Printf("error inserting : %v\n", err)
+			//fmt.Printf("when inserting : %v\n", err)
 		}
 	}
 }
@@ -57,6 +58,10 @@ type Action struct {
 }
 
 type ActionTable map[int]map[Terminal]Action
+
+func (t ActionTable) Copy() ActionTable {
+	return maps.Clone(t)
+}
 
 func (t ActionTable) Register(stateIndex int, action Action, terminal Terminal) error {
 	if t[stateIndex] == nil {
@@ -76,6 +81,10 @@ func (t ActionTable) Register(stateIndex int, action Action, terminal Terminal) 
 }
 
 type GotoTable map[int]map[Symbol]int
+
+func (t GotoTable) Copy() GotoTable {
+	return maps.Clone(t)
+}
 
 func (t GotoTable) Register(stateIndex, nextStateIndex int, symbol Symbol) error {
 	if t[stateIndex] == nil {
@@ -98,4 +107,5 @@ const (
 	REDUCE ActionType = "reduce"
 	ACCEPT ActionType = "accept"
 	ERROR  ActionType = "error"
+	GOTO   ActionType = "goto"
 )

@@ -2,6 +2,10 @@
 
 package collections
 
+import (
+	"fmt"
+)
+
 type Stack[T any] struct {
 	data []T
 }
@@ -49,4 +53,18 @@ func (s *Stack[T]) Size() int {
 // Clear removes all elements from the stack.
 func (s *Stack[T]) Clear() {
 	s.data = []T{}
+}
+
+// String returns a string representation of the stack.
+func (s *Stack[T]) String() string {
+	// Convert the stack to a string representation
+	result := "["
+	for i, v := range s.data {
+		result += fmt.Sprintf("%v", v)
+		if i < len(s.data)-1 {
+			result += ", "
+		}
+	}
+	result += "]"
+	return result
 }
