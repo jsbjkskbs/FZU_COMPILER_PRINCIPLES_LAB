@@ -77,6 +77,14 @@ func TestParser_BuildTable(t *testing.T) {
 			name:    "Test2",
 			grammar: grammars[1],
 		},
+		{
+			name: "Test3",
+			grammar: Grammar{
+				AugmentedProduction: AugmentedProduction,
+				Productions:         Productions,
+				Terminals:           Terminals,
+			},
+		},
 	}
 
 	for _, tt := range tests {

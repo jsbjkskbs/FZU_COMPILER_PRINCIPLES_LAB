@@ -36,6 +36,9 @@ func (t LRTable) Insert(state *State, grammar *Grammar) {
 			}
 		} else {
 			symbol := item.Production.Body[item.Dot]
+			if symbol.IsEpsilon() {
+				continue
+			}
 			if grammar.IsNonTerminal(symbol) {
 				err = t.GotoTable.Register(state.Index, state.Transitions[symbol].Index, symbol)
 			} else {
