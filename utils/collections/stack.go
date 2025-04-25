@@ -1,14 +1,14 @@
 // Simple stack implementation
 
-package stack
+package collections
 
 type Stack[T any] struct {
 	data []T
 }
 
-// New creates a new stack.
-func New[T any]() *Stack[T] {
-	return &Stack[T]{data: []T{}}
+// NewStack creates a new stack.
+func NewStack[T any]() Stack[T] {
+	return Stack[T]{data: []T{}}
 }
 
 // Push adds an element to the top of the stack.
