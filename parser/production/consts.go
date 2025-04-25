@@ -26,7 +26,7 @@ var Terminals = Set[Terminal]{}.AddAll(
 	"true", "false",
 
 	// Types
-	"basic", "id", "num", "real", "int", "bool", "string", "float", "byte",
+	"basic", "id", "num", "real",
 
 	// Special symbols
 	EPSILON, TERMINATE,
@@ -37,6 +37,8 @@ var AugmentedProduction = Production{
 	Body: []Symbol{"program"},
 }
 
+var OptimizedSymbols = Set[Symbol]{}.AddAll("combined_decls_stmts")
+
 var Productions = []Production{
 	// program → block
 	{
@@ -44,9 +46,28 @@ var Productions = []Production{
 		Body: []Symbol{"block"},
 	},
 	// block → { decls stmts }
+	// ** optimized to combined_decls_stmts **
+	// block → { combined_decls_stmts }
+	// combined_decls_stmts → decls stmts | stmts | decls | ε
 	{
 		Head: "block",
-		Body: []Symbol{"{", "decls", "stmts", "}"},
+		Body: []Symbol{"{", "combined_decls_stmts", "}"},
+	},
+	{
+		Head: "combined_decls_stmts",
+		Body: []Symbol{"decls", "stmts"},
+	},
+	{
+		Head: "combined_decls_stmts",
+		Body: []Symbol{"stmts"},
+	},
+	{
+		Head: "combined_decls_stmts",
+		Body: []Symbol{"decls"},
+	},
+	{
+		Head: "combined_decls_stmts",
+		Body: []Symbol{EPSILON},
 	},
 	// decls → decls decl | ε
 	{
@@ -80,44 +101,55 @@ var Productions = []Production{
 		Head: "stmts",
 		Body: []Symbol{EPSILON}, // ε
 	},
-	// stmt → matched_stmt | unmatched_if_stmt（通过显式规则消除else悬挂）
+	// stmt → matched_stmt | unmatched_stmt
+	// ** solved else-hanging problem **
 	{
 		Head: "stmt",
 		Body: []Symbol{"matched_stmt"},
 	},
 	{
 		Head: "stmt",
-		Body: []Symbol{"unmatched_if_stmt"},
+		Body: []Symbol{"unmatched_stmt"},
 	},
-	// matched_stmt → loc=bool; | if(bool) matched_stmt else matched_stmt | while(bool) stmt | do stmt while(bool); | break; | block
+	// unmatched_stmt → if ( bool ) unmatched_stmt
+	{
+		Head: "unmatched_stmt",
+		Body: []Symbol{"if", "(", "bool", ")", "unmatched_stmt"},
+	},
+	// unmatched_stmt → if ( bool ) matched_stmt else unmatched_stmt
+	{
+		Head: "unmatched_stmt",
+		Body: []Symbol{"if", "(", "bool", ")", "matched_stmt", "else", "unmatched_stmt"},
+	},
+	// matched_stmt → loc = bool ;
 	{
 		Head: "matched_stmt",
 		Body: []Symbol{"loc", "=", "bool", ";"},
 	},
+	// matched_stmt → if ( bool ) matched_stmt else matched_stmt
 	{
 		Head: "matched_stmt",
 		Body: []Symbol{"if", "(", "bool", ")", "matched_stmt", "else", "matched_stmt"},
 	},
+	// matched_stmt → while ( bool ) stmt
 	{
 		Head: "matched_stmt",
 		Body: []Symbol{"while", "(", "bool", ")", "stmt"},
 	},
+	// matched_stmt → do stmt while ( bool ) ;
 	{
 		Head: "matched_stmt",
 		Body: []Symbol{"do", "stmt", "while", "(", "bool", ")", ";"},
 	},
+	// matched_stmt → break ;
 	{
 		Head: "matched_stmt",
 		Body: []Symbol{"break", ";"},
 	},
+	// matched_stmt → block
 	{
 		Head: "matched_stmt",
 		Body: []Symbol{"block"},
-	},
-	// unmatched_if_stmt → if(bool) stmt（未匹配的if，只能被后续else配对）
-	{
-		Head: "unmatched_if_stmt",
-		Body: []Symbol{"if", "(", "bool", ")", "stmt"},
 	},
 	// loc → loc[num] | id
 	{

@@ -1,68 +1,14 @@
-package parser
+package parser_test
 
 import (
 	"fmt"
 	"testing"
 
+	. "app/parser"
 	. "app/parser/grammar"
 	. "app/parser/production"
 	. "app/utils/collections"
 )
-
-var grammars = []Grammar{
-	{
-		AugmentedProduction: Production{Head: "S'", Body: []Symbol{"S"}},
-		Productions: []Production{
-			{
-				Head: "S",
-				Body: []Symbol{"L", "=", "R"},
-			},
-			{
-				Head: "S",
-				Body: []Symbol{"R"},
-			},
-			{
-				Head: "L",
-				Body: []Symbol{"*", "R"},
-			},
-			{
-				Head: "L",
-				Body: []Symbol{"id"},
-			},
-			{
-				Head: "R",
-				Body: []Symbol{"L"},
-			},
-		},
-		Terminals: Set[Terminal]{}.AddAll("*", "=", "id", EPSILON, TERMINATE),
-	},
-	{
-		AugmentedProduction: Production{Head: "S'", Body: []Symbol{"S"}},
-		Productions: []Production{
-			{
-				Head: "S",
-				Body: []Symbol{"V", "=", "E"},
-			},
-			{
-				Head: "S",
-				Body: []Symbol{"E"},
-			},
-			{
-				Head: "E",
-				Body: []Symbol{"V"},
-			},
-			{
-				Head: "V",
-				Body: []Symbol{"x"},
-			},
-			{
-				Head: "V",
-				Body: []Symbol{"*", "E"},
-			},
-		},
-		Terminals: Set[Terminal]{}.AddAll("=", "x", "*", EPSILON, TERMINATE),
-	},
-}
 
 func TestParser_BuildTable(t *testing.T) {
 	tests := []struct {
@@ -76,6 +22,14 @@ func TestParser_BuildTable(t *testing.T) {
 		{
 			name:    "Test2",
 			grammar: grammars[1],
+		},
+		{
+			name: "Test3",
+			grammar: Grammar{
+				AugmentedProduction: AugmentedProduction,
+				Productions:         Productions,
+				Terminals:           Terminals,
+			},
 		},
 	}
 

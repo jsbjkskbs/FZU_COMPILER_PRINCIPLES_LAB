@@ -38,7 +38,7 @@ func (p *Parser) BuildStates() {
 
 			newState := &State{
 				Index:       len(p.States),
-				Items:       p.CLOSURE(gotoItems),
+				Items:       gotoItems,
 				Transitions: make(map[Symbol]*State),
 			}
 			index := slices.IndexFunc(p.States, func(s *State) bool {
@@ -68,6 +68,7 @@ func (p *Parser) BuildSymbols() {
 }
 
 func (p *Parser) BuildFirstSet() {
+	p.EnsureSymbols()
 	p.FirstSet = make(FirstSet)
 
 	for terminal := range p.Grammar.Terminals {
@@ -87,7 +88,7 @@ func (p *Parser) BuildFirstSet() {
 		for _, production := range p.Grammar.Productions {
 			firstSet := p.FirstSet[production.Head]
 
-			if len(production.Body) == 0 {
+			if len(production.Body) == 0 || production.Body[0].IsEpsilon() {
 				if !firstSet.Contains(EPSILON) {
 					firstSet.Add(EPSILON)
 					loop = true
@@ -115,8 +116,10 @@ func (p *Parser) BuildFirstSet() {
 					}
 
 					if symbol == production.Body[len(production.Body)-1] && symbolFirstSet.Contains(EPSILON) {
-						firstSet.Add(EPSILON)
-						loop = true
+						if !firstSet.Contains(EPSILON) {
+							firstSet.Add(EPSILON)
+							loop = true
+						}
 					}
 				} else {
 					if !firstSet.Contains(Terminal(symbol)) {
@@ -160,7 +163,7 @@ func (p *Parser) CLOSURE(items []LR1Item) []LR1Item {
 
 			for _, production := range p.Grammar.Productions {
 				if production.Head == nextSymbol {
-					if len(production.Body) == 0 {
+					if production.Body[0].IsEpsilon() {
 						newItem := LR1Item{
 							Production: production,
 							Dot:        0,
@@ -208,7 +211,7 @@ func (p *Parser) GOTO(items LR1Items, symbol Symbol) LR1Items {
 			gotoItems = append(gotoItems, newItem)
 		}
 	}
-	return gotoItems
+	return p.CLOSURE(gotoItems)
 }
 
 func (p *Parser) findLookaheads(symbols []Symbol, lookahead Terminal) Set[Terminal] {

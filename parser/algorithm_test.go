@@ -1,9 +1,10 @@
-package parser
+package parser_test
 
 import (
 	"fmt"
 	"testing"
 
+	. "app/parser"
 	. "app/parser/grammar"
 	. "app/parser/production"
 	. "app/utils/collections"
