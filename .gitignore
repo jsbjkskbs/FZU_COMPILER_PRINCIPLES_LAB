@@ -1,1 +1,4 @@
 /tests/lexer/result/
+/tests/parser/result/
+/tests/benchmark/
+/bin/

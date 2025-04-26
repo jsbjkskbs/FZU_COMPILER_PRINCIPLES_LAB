@@ -6,20 +6,36 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync/atomic"
 	"unicode"
 
+	"app/config"
 	"app/utils"
 )
 
+var _PrintNoBufferReaderOnce = atomic.Bool{}
+
 type Lexer struct {
-	_reader      *bufio.Reader
+	_reader      io.RuneScanner
 	_line, _pos  int64
 	_lineLengths []int64
 }
 
 func NewLexer(r io.Reader) *Lexer {
+	var reader io.RuneScanner
+	if _PrintNoBufferReaderOnce.CompareAndSwap(false, true) {
+		if config.Config.Lexer.UsingNoBufferedReader {
+			println("Lexer: using no buffered reader")
+		} else {
+			println("Lexer: using buffered reader")
+		}
+	}
+	if config.Config.Lexer.UsingNoBufferedReader {
+		reader = bufio.NewReaderSize(r, 16)
+	}
+	reader = bufio.NewReader(r)
 	return &Lexer{
-		_reader:      bufio.NewReader(r),
+		_reader:      reader,
 		_line:        0,
 		_pos:         1,
 		_lineLengths: []int64{},
@@ -167,6 +183,13 @@ func (l *Lexer) skipAnnotation2() error {
 func (l *Lexer) ReadString() (Token, error) {
 	s := ""
 	escape := false
+	u := ""
+	o := ""
+	escapeAsUnicodeUpper := false
+	escapeAsUnicodeLower := false
+	escapeAsOctal := false
+	widthOfUnicode := 0
+	widthOfOctal := 0
 	for {
 		r, err := l.nextRune()
 		if err != nil {
@@ -187,21 +210,79 @@ func (l *Lexer) ReadString() (Token, error) {
 			continue
 		}
 		if escape {
-			switch r {
-			case 'n':
-				s += "\n"
-			case 't':
-				s += "\t"
-			case 'r':
-				s += "\r"
-			case 'b':
-				s += "\b"
-			case 'f':
-				s += "\f"
-			default:
-				s += string(r)
+			if escapeAsUnicodeLower {
+				if !utils.IsHex(r) {
+					return Token{}, fmt.Errorf("illegal hex for unicode[lower] %s, at line %d, pos %d", u, l._line, l._pos)
+				} else {
+					widthOfUnicode++
+					u += string(r)
+					if widthOfUnicode == 4 {
+						s += string(utils.HexToRune(u))
+						u = ""
+						widthOfUnicode = 0
+						escapeAsUnicodeLower = false
+						escape = false
+					}
+				}
+			} else if escapeAsUnicodeUpper {
+				if !utils.IsHex(r) {
+					return Token{}, fmt.Errorf("illegal hex for unicode[upper] %s, at line %d, pos %d", u, l._line, l._pos)
+				} else {
+					widthOfUnicode++
+					u += string(r)
+					if widthOfUnicode == 8 {
+						s += string(utils.HexToRune(u))
+						u = ""
+						widthOfUnicode = 0
+						escapeAsUnicodeUpper = false
+						escape = false
+					}
+				}
+			} else if escapeAsOctal {
+				if '0' > r || r > '7' {
+					return Token{}, fmt.Errorf("illegal octal %s, at line %d, pos %d", o, l._line, l._pos)
+				} else {
+					widthOfOctal++
+					o += string(r)
+					if widthOfOctal == 2 {
+						s += string(utils.OctalToRune(o))
+						o = ""
+						widthOfOctal = 0
+						escapeAsOctal = false
+						escape = false
+					}
+				}
+			} else {
+				switch r {
+				case 'n':
+					s += "\n"
+				case 't':
+					s += "\t"
+				case 'r':
+					s += "\r"
+				case 'b':
+					s += "\b"
+				case 'f':
+					s += "\f"
+				case 'a':
+					s += "\a"
+				case 'v':
+					s += "\v"
+				case 'u': // escape unicode
+					escapeAsUnicodeLower = true
+				case 'U': // escape unicode
+					escapeAsUnicodeUpper = true
+				case '0': // escape octal
+					escapeAsOctal = true
+				case '"':
+					s += "\""
+				default:
+					return Token{}, fmt.Errorf("illegal escape \\%s, at line %d, pos %d", string(r), l._line, l._pos)
+				}
 			}
-			escape = false
+			if !escapeAsUnicodeLower && !escapeAsUnicodeUpper && !escapeAsOctal {
+				escape = false
+			}
 			continue
 		}
 		if r == '\n' {
@@ -213,12 +294,24 @@ func (l *Lexer) ReadString() (Token, error) {
 		}
 		s += string(r)
 	}
+	if escapeAsUnicodeLower {
+		return Token{}, fmt.Errorf("illegal unicode[lower] %s, at line %d, pos %d", u, l._line, l._pos)
+	}
+	if escapeAsUnicodeUpper {
+		return Token{}, fmt.Errorf("illegal unicode[upper] %s, at line %d, pos %d", u, l._line, l._pos)
+	}
+	if escapeAsOctal {
+		return Token{}, fmt.Errorf("illegal octal %s, at line %d, pos %d", o, l._line, l._pos)
+	}
 	return Token{Type: STRING, Val: s, Line: l._line, Pos: l._pos}, nil
 }
 
 func (l *Lexer) ReadChar() (Token, error) {
 	s := ""
 	escape := false
+	escapeAsUnicodeUpper := false
+	escapeAsUnicodeLower := false
+	illegalUnicode := false
 	width := 0
 	for {
 		r, err := l.nextRune()
@@ -252,7 +345,22 @@ func (l *Lexer) ReadChar() (Token, error) {
 				s += "\b"
 			case 'f':
 				s += "\f"
+			case 'u': // escapeAsUnicode
+				if escapeAsUnicodeLower || escapeAsUnicodeUpper {
+					illegalUnicode = true
+				}
+				escapeAsUnicodeLower = true
+				s += string(r)
+			case 'U': // escapeAsUnicode
+				if escapeAsUnicodeLower || escapeAsUnicodeUpper {
+					illegalUnicode = true
+				}
+				escapeAsUnicodeUpper = true
+				s += string(r)
 			default:
+				if (escapeAsUnicodeLower || escapeAsUnicodeUpper) && !utils.IsHex(r) {
+					illegalUnicode = true
+				}
 				s += string(r)
 			}
 			width++
@@ -262,8 +370,18 @@ func (l *Lexer) ReadChar() (Token, error) {
 		s += string(r)
 		width++
 	}
-	if width > 1 {
+	// check if the char is valid[not starting with \ and too long]
+	if width > 1 && (!escapeAsUnicodeLower && !escapeAsUnicodeUpper) {
 		return Token{}, fmt.Errorf("illegal char[too long] %s, at line %d, pos %d", s, l._line, l._pos)
+	}
+	if escapeAsUnicodeLower && width != 5 {
+		return Token{}, fmt.Errorf("illegal char[unmatched unicode length] %s, at line %d, pos %d", s, l._line, l._pos)
+	}
+	if escapeAsUnicodeUpper && width != 9 {
+		return Token{}, fmt.Errorf("illegal char[unmatched unicode length] %s, at line %d, pos %d", s, l._line, l._pos)
+	}
+	if (escapeAsUnicodeLower || escapeAsUnicodeUpper) && illegalUnicode {
+		return Token{}, fmt.Errorf("illegal char[escapeAsUnicode] %s, at line %d, pos %d", s, l._line, l._pos)
 	}
 	return Token{Type: CHAR, Val: s, Line: l._line, Pos: l._pos}, nil
 }

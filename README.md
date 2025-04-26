@@ -13,12 +13,27 @@ cover them (there may be some bugs).
    ```bash
    go mod tidy
    ```
-3. Run the program
+3. Build the program
    - Linux/Unix
      ```bash
-      make [lexer]
+      make build
      ```
     - Windows
       ```bash
-      make.bat [lexer]
+      make.bat build
       ```
+4. Run the binary in the `bin` directory
+5. Use the `-h` flag to see the help information
+   ```bash
+   ./bin/xxx -h
+   ```
+   Here is help information for the `-h` flag:
+   ```
+   Usage of ./bin/mmap:
+    -b    Enable benchmark mode
+    -lexer--no-buffered
+    Use no buffered reader for lexer
+    -s    Stop writing results to file
+    -t string
+    Target to run: lexer or parser (default "lexer")
+    ```
