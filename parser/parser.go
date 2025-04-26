@@ -1,13 +1,49 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"slices"
 
 	"app/lexer"
 	. "app/parser/production"
 	"app/utils/log"
 )
+
+func (p *Parser) Parse(l *lexer.Lexer, logger func(string)) {
+	walker := p.NewWalker()
+	for {
+		token, err := l.NextToken()
+		if err != nil && !errors.Is(err, io.EOF) {
+			logger(fmt.Sprintf("Error: %v", err))
+			return
+		}
+
+		if errors.Is(err, io.EOF) {
+			token.Type = lexer.EOF
+		}
+		symbol := p.Reflect(token)
+
+		for {
+			logger(fmt.Sprintf("State: %v\nSymbols: %v\nSymbol: %s\n", walker.States, walker.Symbols, symbol))
+			err, action := walker.Next(symbol)
+			if err != nil {
+				logger(fmt.Sprintf("Error: %v", err))
+				return
+			}
+			logger(fmt.Sprintf("Token: (%s, %s), Action: %v\n\n", token.Type.ToString(), token.Val, action))
+			if action.Type != REDUCE {
+				break
+			}
+		}
+
+		if symbol == TERMINATE {
+			logger("Parsing completed successfully.")
+			break
+		}
+	}
+}
 
 func (p *Parser) Reflect(token lexer.Token) Symbol {
 	switch token.Type {
