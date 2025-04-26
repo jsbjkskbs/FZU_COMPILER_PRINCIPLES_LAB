@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	. "app/config"
 	"app/lexer"
 	"app/parser"
 	"app/utils/log"
@@ -17,21 +19,17 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		println("Usage: go run main.go <mode>")
-		return
-	}
-
 	EnvChecker()
 
-	mode := os.Args[1]
-	switch mode {
+	ReadFlag()
+
+	switch Config.Target {
 	case "lexer":
 		LexerTest()
 	case "parser":
 		ParserTest()
 	default:
-		println("Unknown mode:", mode)
+		println("Unknown mode:", Config.Target)
 	}
 
 }
@@ -85,7 +83,7 @@ func Divider() log.Argument {
 
 // LexerTest runs the lexer test on all files in the tests/lexer directory
 func LexerTest() {
-	files, err := GetDirFiles("tests/lexer")
+	files, err := GetDirFiles(Config.Path + "lexer")
 	if err != nil {
 		panic(err)
 	}
@@ -109,10 +107,12 @@ func LexerTest() {
 		Divider(),
 	))
 
-	// Create result directory if it doesn't exist
-	err = os.MkdirAll("tests/lexer/result", os.ModePerm)
-	if err != nil {
-		panic(err)
+	if !Config.Silent {
+		// Create result directory if it doesn't exist
+		err = os.MkdirAll(Config.Path+"lexer/result", os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	fmt.Print(log.Sprintf(
@@ -126,17 +126,29 @@ func LexerTest() {
 		go func(file FileInfo) {
 			st := time.Now()
 			defer wg.Done()
-			result, err := os.Create("tests/lexer/result/" + file.info.Name() + ".result")
-			if err != nil {
-				panic(err)
-			}
-			defer func(result *os.File) {
-				err := result.Close()
+			var f *os.File
+			var err error
+			if !Config.Silent {
+				f, err = os.Create(Config.Path + "lexer/result/" + file.info.Name() + ".result")
 				if err != nil {
 					panic(err)
 				}
-			}(result)
-			err = StartSingleLexerTest(file.path, result)
+				defer func(f *os.File) {
+					err := f.Close()
+					if err != nil {
+						panic(err)
+					}
+				}(f)
+			}
+			writer := bufio.NewWriter(f)
+			err = StartSingleLexerTest(file.path, writer)
+			if err != nil {
+				fmt.Println(
+					log.Sprintf(log.Argument{FrontColor: log.Red, Highlight: true, Format: "!!! System Error: %s", Args: []any{err.Error()}}),
+				)
+			}
+
+			err = writer.Flush()
 			if err != nil {
 				fmt.Println(
 					log.Sprintf(log.Argument{FrontColor: log.Red, Highlight: true, Format: "!!! System Error: %s", Args: []any{err.Error()}}),
@@ -176,7 +188,7 @@ func StartSingleLexerTest(filename string, writer io.Writer) error {
 
 	for {
 		token, err := l.NextToken()
-		if err != nil && !errors.Is(err, io.EOF) {
+		if !Config.Silent && err != nil && !errors.Is(err, io.EOF) {
 			_, err2 := fmt.Fprintf(writer, "Error: %s\n", err.Error())
 			if err2 != nil {
 				return err2
@@ -185,16 +197,18 @@ func StartSingleLexerTest(filename string, writer io.Writer) error {
 		if token.Type == lexer.EOF || errors.Is(err, io.EOF) {
 			break
 		}
-		if token.Type != 0 {
+		if !Config.Silent && token.Type != 0 {
 			_, err = fmt.Fprintf(writer, "(%s, %s)\n", token.Type.ToString(), token.Val)
 			if err != nil {
 				return err
 			}
 		}
 	}
-	_, err = fmt.Fprintln(writer)
-	if err != nil {
-		return err
+	if !Config.Silent {
+		_, err = fmt.Fprintln(writer)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -202,7 +216,7 @@ func StartSingleLexerTest(filename string, writer io.Writer) error {
 var p *parser.Parser
 
 func ParserTest() {
-	files, err := GetDirFiles("tests/parser")
+	files, err := GetDirFiles(Config.Path + "parser")
 	if err != nil {
 		panic(err)
 	}
@@ -227,7 +241,7 @@ func ParserTest() {
 	))
 
 	// Create result directory if it doesn't exist
-	err = os.MkdirAll("tests/parser/result", os.ModePerm)
+	err = os.MkdirAll(Config.Path+"parser/result", os.ModePerm)
 	if err != nil {
 		panic(err)
 	}
@@ -255,7 +269,7 @@ func ParserTest() {
 		go func(file FileInfo) {
 			st := time.Now()
 			defer wg.Done()
-			result, err := os.Create("tests/parser/result/" + file.info.Name() + ".result")
+			result, err := os.Create(Config.Path + "parser/result/" + file.info.Name() + ".result")
 			if err != nil {
 				panic(err)
 			}
@@ -265,7 +279,15 @@ func ParserTest() {
 					panic(err)
 				}
 			}(result)
-			err = StartSingleParserTest(file.path, result)
+			writer := bufio.NewWriter(result)
+			err = StartSingleParserTest(file.path, writer)
+			if err != nil {
+				fmt.Println(
+					log.Sprintf(log.Argument{FrontColor: log.Red, Highlight: true, Format: "!!! System Error: %s", Args: []any{err.Error()}}),
+				)
+			}
+
+			err = writer.Flush()
 			if err != nil {
 				fmt.Println(
 					log.Sprintf(log.Argument{FrontColor: log.Red, Highlight: true, Format: "!!! System Error: %s", Args: []any{err.Error()}}),

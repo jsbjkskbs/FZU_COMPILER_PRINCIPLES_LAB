@@ -2,20 +2,18 @@ package mmap
 
 import (
 	"io"
-
-	"golang.org/x/exp/mmap"
 )
 
 type Reader struct {
 	io.Reader
 	io.Closer
 
-	_r  *mmap.ReaderAt
+	_r  *_MemoryMap
 	pos int
 }
 
 func NewMMapReader(filepath string) (*Reader, error) {
-	f, err := mmap.Open(filepath)
+	f, err := Open(filepath)
 	if err != nil {
 		return nil, err
 	}

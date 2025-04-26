@@ -395,6 +395,97 @@ Line 2"
 		str:            ``,
 		expectedTokens: []lexer.Token{},
 	},
+	{
+		name: "unicode 4 bit",
+		str: `// unicode 4 bit
+"\u0041"
+"\u0042\u0043"
+"\u0043\u0044\u0045"
+"\u0044\u0045\u0046\u0047"
+"\u0048\u0065\u006C\u006C\u006F\u002c\u0020\u0057\u006F\u0072\u006C\u0064\u0021"
+`,
+		expectedTokens: []lexer.Token{
+			{Type: lexer.STRING, Val: "\u0041"},
+			{Type: lexer.STRING, Val: "\u0042\u0043"},
+			{Type: lexer.STRING, Val: "\u0043\u0044\u0045"},
+			{Type: lexer.STRING, Val: "\u0044\u0045\u0046\u0047"},
+			{Type: lexer.STRING, Val: "Hello, World!"},
+		},
+	},
+	{
+		name: "unicode 8 bit",
+		str: `// unicode 8 bit
+"\U0001F600"
+"\U0001F601\U0001F602"
+"\U0001F602\U0001F603\U0001F604"
+"\U0001F603\U0001F604\U0001F605\U0001F606"
+"\U0001F604\U0001F605\U0001F606\U0001F607\U0001F608"
+// 你好，世界！
+"\U00004F60\U0000597D\U0000FE50\U00004e16\U0000754c\U0000ff01"
+`,
+		expectedTokens: []lexer.Token{
+			{Type: lexer.STRING, Val: "\U0001F600"},
+			{Type: lexer.STRING, Val: "\U0001F601\U0001F602"},
+			{Type: lexer.STRING, Val: "\U0001F602\U0001F603\U0001F604"},
+			{Type: lexer.STRING, Val: "\U0001F603\U0001F604\U0001F605\U0001F606"},
+			{Type: lexer.STRING, Val: "\U0001F604\U0001F605\U0001F606\U0001F607\U0001F608"},
+			{Type: lexer.STRING, Val: "\U00004F60\U0000597D\U0000FE50\U00004e16\U0000754c\U0000ff01"},
+		},
+	},
+	{
+		name: "unicode 4 bit with error",
+		str: `// unicode 4 bit with error
+"\u004K"
+"\u003"
+"\u"`,
+		raisingErrorAnyWay: true,
+	},
+	{
+		name: "unicode 8 bit with error",
+		str: `// unicode 8 bit with error
+"\U0001F60"
+"\U0001F60G"
+"\U"`,
+		raisingErrorAnyWay: true,
+	},
+	{
+		name: "mixed unicode",
+		str: `// mixed unicode
+"\u0041abcd\U0001F600efghijklmnop\U0001F601qrstuvwxyz\U0001F602"`,
+		expectedTokens: []lexer.Token{
+			{Type: lexer.STRING, Val: "\u0041abcd\U0001F600efghijklmnop\U0001F601qrstuvwxyz\U0001F602"},
+		},
+	},
+	{
+		name: "octal 2 bit",
+		str: `// octal 2 bit
+"\001"
+"\002\003"
+"\003\004\005"
+"\004\005\006\007"`,
+		expectedTokens: []lexer.Token{
+			{Type: lexer.STRING, Val: "\001"},
+			{Type: lexer.STRING, Val: "\002\003"},
+			{Type: lexer.STRING, Val: "\003\004\005"},
+			{Type: lexer.STRING, Val: "\004\005\006\007"},
+		},
+	},
+	{
+		name: "octal 2 bit with error",
+		str: `// octal 2 bit with error
+"\01"
+"\001\002\003\004\005\006\007\010"
+"\0"`,
+		raisingErrorAnyWay: true,
+	},
+	{
+		name: "mixed unicode and octal",
+		str: `// mixed unicode and octal
+"\u0041abcd\001efghijklmnop\U0001F601qrstuvwxyz\003"`,
+		expectedTokens: []lexer.Token{
+			{Type: lexer.STRING, Val: "\u0041abcd\001efghijklmnop\U0001F601qrstuvwxyz\003"},
+		},
+	},
 }
 
 func TestLexer(t *testing.T) {
