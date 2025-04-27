@@ -252,7 +252,7 @@ func (l *Lexer) ReadString() (Token, error) {
 					}
 				}
 			} else if escapeAsOctal {
-				if '0' > r || r > '7' {
+				if !utils.IsOctal(r) {
 					return Token{}, fmt.Errorf("illegal octal %s, at line %d, pos %d", o, l._line, l._pos)
 				} else {
 					widthOfOctal++
@@ -267,28 +267,14 @@ func (l *Lexer) ReadString() (Token, error) {
 				}
 			} else {
 				switch r {
-				case 'n':
-					s += "\n"
-				case 't':
-					s += "\t"
-				case 'r':
-					s += "\r"
-				case 'b':
-					s += "\b"
-				case 'f':
-					s += "\f"
-				case 'a':
-					s += "\a"
-				case 'v':
-					s += "\v"
+				case 'n', 't', 'r', 'b', 'f', 'a', 'v', '"':
+					s += utils.AppendEscape(r)
 				case 'u': // escape unicode
 					escapeAsUnicodeLower = true
 				case 'U': // escape unicode
 					escapeAsUnicodeUpper = true
 				case '0': // escape octal
 					escapeAsOctal = true
-				case '"':
-					s += "\""
 				default:
 					return Token{}, fmt.Errorf("illegal escape \\%s, at line %d, pos %d", string(r), l._line, l._pos)
 				}
@@ -367,16 +353,8 @@ func (l *Lexer) ReadChar() (Token, error) {
 		}
 		if escape {
 			switch r {
-			case 'n':
-				s += "\n"
-			case 't':
-				s += "\t"
-			case 'r':
-				s += "\r"
-			case 'b':
-				s += "\b"
-			case 'f':
-				s += "\f"
+			case 'n', 't', 'r', 'b', 'f', 'a', 'v':
+				s += utils.AppendEscape(r)
 			case 'u': // escapeAsUnicode
 				if escapeAsUnicodeLower || escapeAsUnicodeUpper {
 					illegalUnicode = true
