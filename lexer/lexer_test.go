@@ -32,9 +32,10 @@ func LexerAct(str string) (tokens []lexer.Token, errCount int) {
 		}
 		if err == nil && !Silent {
 			fmt.Printf(
-				"(%s, %s)\n",
+				"(%s, %s, %s)\n",
 				log.Sprintf(log.Argument{FrontColor: log.Green, Format: "%s", Args: []any{token.Type.ToString()}}),
 				log.Sprintf(log.Argument{FrontColor: log.Yellow, Format: "%s", Args: []any{token.Val}}),
+				log.Sprintf(log.Argument{FrontColor: log.Blue, Format: "%s", Args: []any{token.SpecificType().ToString()}}),
 			)
 
 		}
@@ -79,11 +80,14 @@ func main() {
 -1
 2147483647
 -2147483648
+0x1A2B3C4D
+0X1a2b3c4d
 
 // 浮点数
 0.0
 -0.1
 3.141592653589793
+00.0
 
 // 字符串
 ""
@@ -103,10 +107,13 @@ func main() {
 			{Type: lexer.INTEGER, Val: "2147483647"},
 			{Type: lexer.OPERATOR, Val: "-"},
 			{Type: lexer.INTEGER, Val: "2147483648"},
+			{Type: lexer.INTEGER, Val: "0x1A2B3C4D"},
+			{Type: lexer.INTEGER, Val: "0X1a2b3c4d"},
 			{Type: lexer.FLOAT, Val: "0.0"},
 			{Type: lexer.OPERATOR, Val: "-"},
 			{Type: lexer.FLOAT, Val: "0.1"},
 			{Type: lexer.FLOAT, Val: "3.141592653589793"},
+			{Type: lexer.FLOAT, Val: "0.0"},
 			{Type: lexer.STRING, Val: ""},
 			{Type: lexer.STRING, Val: "Hello, 世界!"},
 			{Type: lexer.STRING, Val: "Escape: \\n \\t \\\""},
@@ -294,14 +301,16 @@ abc@ 123#
 		str: `// 非法数字
 // 非法整数
 123abc
+0XGHI
+0xghi
+0x123.456
+0x
+0X
 // 非法浮点数
 123.456.789
 
 // 不支持的科学计数法
 1e10
-
-// 不支持的十六进制数
-0x1A
 
 // 不支持的八进制数
 0777
@@ -311,11 +320,9 @@ abc@ 123#
 
 // 错误前缀
 001
-00.0
-001.1
 `,
 		expectedTokens: make([]lexer.Token, 0),
-		errorCount:     9,
+		errorCount:     11,
 	},
 	{
 		name: "Multiline String Using Double Quotes",
@@ -486,6 +493,22 @@ Line 2"
 			{Type: lexer.STRING, Val: "\u0041abcd\001efghijklmnop\U0001F601qrstuvwxyz\003"},
 		},
 	},
+	{
+		name: "backtick string",
+		str: "`" + `
+// This is a backtick string
+// It can contain any characters, including newlines and quotes
+"Hello, World!"
+// It will ignore escape sequences like \n, \t, and \"
+\n\t\"\a` + "`",
+		expectedTokens: []lexer.Token{
+			{Type: lexer.STRING, Val: `
+// This is a backtick string
+// It can contain any characters, including newlines and quotes
+"Hello, World!"
+// It will ignore escape sequences like \n, \t, and \"
+\n\t\"\a`},
+		}},
 }
 
 func TestLexer(t *testing.T) {

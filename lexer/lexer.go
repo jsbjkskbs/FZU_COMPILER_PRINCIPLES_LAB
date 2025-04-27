@@ -43,6 +43,15 @@ func NewLexer(r io.Reader) *Lexer {
 }
 
 func (l *Lexer) NextToken() (Token, error) {
+	if l._reader == nil {
+		return Token{}, fmt.Errorf("lexer is not initialized")
+	}
+	token, err := l.nextToken()
+	token.parse()
+	return token, err
+}
+
+func (l *Lexer) nextToken() (Token, error) {
 	err := l.skipWhiteSpace()
 	if errors.Is(err, io.EOF) {
 		return Token{Type: EOF}, nil
@@ -88,6 +97,10 @@ func (l *Lexer) NextToken() (Token, error) {
 
 	if r == '\'' {
 		return l.ReadChar()
+	}
+
+	if r == '`' {
+		return l.ReadString2()
 	}
 
 	if utils.IsLetter(r) || r == '_' {
@@ -303,7 +316,26 @@ func (l *Lexer) ReadString() (Token, error) {
 	if escapeAsOctal {
 		return Token{}, fmt.Errorf("illegal octal %s, at line %d, pos %d", o, l._line, l._pos)
 	}
-	return Token{Type: STRING, Val: s, Line: l._line, Pos: l._pos}, nil
+	return Token{Type: STRING, Val: s, Line: l._line, Pos: l._pos, _type: ConstantStringDoubleQuote}, nil
+}
+
+func (l *Lexer) ReadString2() (Token, error) {
+	s := ""
+	for {
+		r, err := l.nextRune()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return Token{Type: EOF}, fmt.Errorf("string not closed, line %d, pos %d", l._line, l._pos)
+			} else {
+				return Token{}, err
+			}
+		}
+		if r == '`' {
+			break
+		}
+		s += string(r)
+	}
+	return Token{Type: STRING, Val: s, Line: l._line, Pos: l._pos, _type: ConstantStringBacktick}, nil
 }
 
 func (l *Lexer) ReadChar() (Token, error) {
@@ -374,11 +406,17 @@ func (l *Lexer) ReadChar() (Token, error) {
 	if width > 1 && (!escapeAsUnicodeLower && !escapeAsUnicodeUpper) {
 		return Token{}, fmt.Errorf("illegal char[too long] %s, at line %d, pos %d", s, l._line, l._pos)
 	}
-	if escapeAsUnicodeLower && width != 5 {
-		return Token{}, fmt.Errorf("illegal char[unmatched unicode length] %s, at line %d, pos %d", s, l._line, l._pos)
+	if escapeAsUnicodeLower {
+		if width != 5 {
+			return Token{}, fmt.Errorf("illegal char[unmatched unicode length] %s, at line %d, pos %d", s, l._line, l._pos)
+		}
+		return Token{Type: CHAR, Val: string(utils.HexToRune(s[1:])), Line: l._line, Pos: l._pos}, nil
 	}
-	if escapeAsUnicodeUpper && width != 9 {
-		return Token{}, fmt.Errorf("illegal char[unmatched unicode length] %s, at line %d, pos %d", s, l._line, l._pos)
+	if escapeAsUnicodeUpper {
+		if width != 9 {
+			return Token{}, fmt.Errorf("illegal char[unmatched unicode length] %s, at line %d, pos %d", s, l._line, l._pos)
+		}
+		return Token{Type: CHAR, Val: string(utils.HexToRune(s[1:])), Line: l._line, Pos: l._pos}, nil
 	}
 	if (escapeAsUnicodeLower || escapeAsUnicodeUpper) && illegalUnicode {
 		return Token{}, fmt.Errorf("illegal char[escapeAsUnicode] %s, at line %d, pos %d", s, l._line, l._pos)
@@ -429,17 +467,36 @@ func (l *Lexer) ReadNumber(r rune) (Token, error) {
 		}
 		s += string(nr)
 	}
-	if illegalSuffix {
+	if illegalSuffix && !strings.HasPrefix(s, "0x") && !strings.HasPrefix(s, "0X") {
 		return tokenWhenWrong, fmt.Errorf("illegal number[suffix] %s, at line %d, pos %d", s, l._line, l._pos)
 	}
 	dotCount := strings.Count(s, ".")
 	if dotCount == 1 {
+		if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
+			return tokenWhenWrong, fmt.Errorf("illegal number[hex] %s, at line %d, pos %d", s, l._line, l._pos)
+		}
 		if strings.HasPrefix(s, "00") {
-			return tokenWhenWrong, fmt.Errorf("illegal number[float] %s, at line %d, pos %d", s, l._line, l._pos)
+			parts := strings.Split(s, ".")
+			l := utils.RemoveLeadingZeros(parts[0])
+			if l == "" {
+				l = "0"
+			}
+			s = l + "." + parts[1]
 		}
 		return Token{Type: FLOAT, Val: s, Line: l._line, Pos: l._pos}, errWhenPassed
 	} else if dotCount == 0 {
-		if strings.HasPrefix(s, "0") {
+		if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
+			if len(s) < 3 {
+				return tokenWhenWrong, fmt.Errorf("illegal number[hex] %s, at line %d, pos %d", s, l._line, l._pos)
+			}
+			if strings.ContainsFunc(s[2:], func(r rune) bool {
+				return !utils.IsHex(r)
+			}) {
+				return tokenWhenWrong, fmt.Errorf("illegal number[hex] %s, at line %d, pos %d", s, l._line, l._pos)
+			} else {
+				return Token{Type: INTEGER, Val: s, Line: l._line, Pos: l._pos}, errWhenPassed
+			}
+		} else if strings.HasPrefix(s, "0") {
 			if len(s) > 1 {
 				return tokenWhenWrong, fmt.Errorf("illegal number[integer] %s, at line %d, pos %d", s, l._line, l._pos)
 			}

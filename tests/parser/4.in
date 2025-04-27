@@ -1,0 +1,6 @@
+{
+    do {
+        int c;
+        c = 1;
+    } while (true);
+}

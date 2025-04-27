@@ -36,3 +36,12 @@ func OctalToRune(octal string) rune {
 	}
 	return 0
 }
+
+func RemoveLeadingZeros(s string) string {
+	for i, r := range s {
+		if r != '0' {
+			return s[i:]
+		}
+	}
+	return "0"
+}

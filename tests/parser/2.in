@@ -9,6 +9,13 @@
             int b;
         }
     } else {
+        c = 0;
         int c;
+        c = 0;
+        int c;
+        c = 0;
+        if (c >= 0) {} else {
+            do {} while (true);
+        }
     }
 }

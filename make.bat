@@ -11,16 +11,16 @@ if "%1"=="help" (
     exit /b 0
 )
 
-if "%1"=="tidy" {
+if "%1"=="tidy" (
     echo Running go mod tidy...
     go mod tidy
-) else if "%1"=="build" {
+) else if "%1"=="build" (
     echo Running go mod tidy...
     go mod tidy
     echo "Building the project with mmap method..."
-    go build -o ./bin/mmap -tags using_mmap_io
+    go build -o ./bin/mmap.exe -tags using_mmap_io
     echo "Building the project with traditional method..."
-    go build -o ./bin/traditional -tags using_traditional_io
+    go build -o ./bin/traditional.exe -tags using_traditional_io
 ) else (
     echo Invalid argument. Use "tidy", "build".
 )

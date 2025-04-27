@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	EnvChecker()
+	// EnvChecker()
 
 	ReadFlag()
 

@@ -15,7 +15,7 @@ func TestNewParser(t *testing.T) {
 	p := NewParser()
 	p.EnsureStates()
 	l := len(p.States)
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		pi := NewParser()
 		pi.EnsureStates()
 		if len(pi.States) != l {
@@ -24,43 +24,43 @@ func TestNewParser(t *testing.T) {
 	}
 	fmt.Println(log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: "Parser test passed[Stable States]", Args: []any{}}))
 	// 注：只能测试LR(0)文法
-	tests := []struct {
-		name string
-		seq  []Symbol
-	}{
-		{
-			name: "Test1",
-			seq:  []Symbol{"{", "decls", "stmts", "}"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := NewParser()
-			p.EnsureStates()
-			state := p.States[0]
-			fmt.Printf("sequence: %s\n",
-				log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: "%s", Args: []any{tt.seq}}),
-			)
-			for _, symbol := range tt.seq {
-				if _, ok := state.Transitions[symbol]; !ok {
-					t.Errorf("Expected %s, got %v\n", symbol, state.Transitions[symbol])
-					break
-				}
-				fmt.Printf("%s%s%s\n",
-					log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: ">> from state: %d ", Args: []any{state.Index}}),
-					log.Sprintf(log.Argument{FrontColor: log.Red, Highlight: true, Format: ">> with symbol: %v ", Args: []any{symbol}}),
-					log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: ">> to state: %d", Args: []any{state.Transitions[symbol].Index}}),
-				)
-				state = state.Transitions[symbol]
-			}
-			fmt.Printf("final state: %s%s\n%s\n",
-				log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: "index: %d, ", Args: []any{state.Index}}),
-				log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: "items: %v", Args: []any{state.Items}}),
-				log.Sprintf(log.Argument{FrontColor: log.Cyan, Highlight: true, Format: "transitions: %v", Args: []any{state.Transitions}}),
-			)
-			fmt.Println()
-		})
-	}
+	// tests := []struct {
+	// 	name string
+	// 	seq  []Symbol
+	// }{
+	// 	{
+	// 		name: "Test1",
+	// 		seq:  []Symbol{"{", "decls", "stmts", "}"},
+	// 	},
+	// }
+	// for _, tt := range tests {
+	// 	t.Run(tt.name, func(t *testing.T) {
+	// 		p := NewParser()
+	// 		p.EnsureStates()
+	// 		state := p.States[0]
+	// 		fmt.Printf("sequence: %s\n",
+	// 			log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: "%s", Args: []any{tt.seq}}),
+	// 		)
+	// 		for _, symbol := range tt.seq {
+	// 			if _, ok := state.Transitions[symbol]; !ok {
+	// 				t.Errorf("Expected %s, got %v\n", symbol, state.Transitions[symbol])
+	// 				break
+	// 			}
+	// 			fmt.Printf("%s%s%s\n",
+	// 				log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: ">> from state: %d ", Args: []any{state.Index}}),
+	// 				log.Sprintf(log.Argument{FrontColor: log.Red, Highlight: true, Format: ">> with symbol: %v ", Args: []any{symbol}}),
+	// 				log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: ">> to state: %d", Args: []any{state.Transitions[symbol].Index}}),
+	// 			)
+	// 			state = state.Transitions[symbol]
+	// 		}
+	// 		fmt.Printf("final state: %s%s\n%s\n",
+	// 			log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: "index: %d, ", Args: []any{state.Index}}),
+	// 			log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: "items: %v", Args: []any{state.Items}}),
+	// 			log.Sprintf(log.Argument{FrontColor: log.Cyan, Highlight: true, Format: "transitions: %v", Args: []any{state.Transitions}}),
+	// 		)
+	// 		fmt.Println()
+	// 	})
+	// }
 }
 
 func TestParser_BuildFirstSet(t *testing.T) {

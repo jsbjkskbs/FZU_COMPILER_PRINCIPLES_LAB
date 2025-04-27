@@ -37,7 +37,7 @@ var AugmentedProduction = Production{
 	Body: []Symbol{"program"},
 }
 
-var OptimizedSymbols = Set[Symbol]{}.AddAll("combined_decls_stmts")
+var OptimizedSymbols = Set[Symbol]{}.AddAll()
 
 var Productions = []Production{
 	// program → block
@@ -51,23 +51,19 @@ var Productions = []Production{
 	// combined_decls_stmts → decls stmts | stmts | decls | ε
 	{
 		Head: "block",
-		Body: []Symbol{"{", "combined_decls_stmts", "}"},
+		Body: []Symbol{"{", "decls", "stmts", "}"},
 	},
 	{
-		Head: "combined_decls_stmts",
-		Body: []Symbol{"decls", "stmts"},
+		Head: "block",
+		Body: []Symbol{"{", "decls", "}"},
 	},
 	{
-		Head: "combined_decls_stmts",
-		Body: []Symbol{"stmts"},
+		Head: "block",
+		Body: []Symbol{"{", "stmts", "}"},
 	},
 	{
-		Head: "combined_decls_stmts",
-		Body: []Symbol{"decls"},
-	},
-	{
-		Head: "combined_decls_stmts",
-		Body: []Symbol{EPSILON},
+		Head: "block",
+		Body: []Symbol{"{", "}"},
 	},
 	// decls → decls decl | ε
 	{
@@ -110,6 +106,10 @@ var Productions = []Production{
 	{
 		Head: "stmt",
 		Body: []Symbol{"unmatched_stmt"},
+	},
+	{
+		Head: "stmt",
+		Body: []Symbol{"decls"},
 	},
 	// unmatched_stmt → if ( bool ) unmatched_stmt
 	{
