@@ -3,7 +3,6 @@ package parser
 import (
 	"slices"
 
-	. "app/parser/production"
 	. "app/utils/collections"
 )
 

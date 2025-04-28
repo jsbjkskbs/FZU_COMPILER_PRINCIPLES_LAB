@@ -4,17 +4,19 @@
     if (a == 0) {
         a = 1;
         if (a == 1) {
+            float a;
             a = 2;
         } else {
             int b;
+            int c;
         }
+        int c;
     } else {
-        c = 0;
         int c;
         c = 0;
-        int c;
-        c = 0;
-        if (c >= 0) {} else {
+        if (c >= 0) {
+            float c;
+        } else {
             do {} while (true);
         }
     }

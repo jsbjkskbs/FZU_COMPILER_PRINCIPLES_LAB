@@ -3,9 +3,6 @@ package parser
 import (
 	"fmt"
 	"maps"
-
-	. "app/parser/grammar"
-	. "app/parser/production"
 )
 
 func (p *Parser) BuildTable() {
@@ -109,3 +106,141 @@ const (
 	ERROR  ActionType = "error"
 	GOTO   ActionType = "goto"
 )
+
+type SymbolTableItem struct {
+	Variable string
+	Type     SymbolTableItemType
+	Address  int
+
+	UnderlyingType string
+
+	VariableSize int
+	ArraySize    int
+
+	Line, Pos int64
+}
+
+type SymbolTableItemType string
+
+const (
+	SymbolTableItemTypeVariable SymbolTableItemType = "variable"
+	SymbolTableItemTypeArray    SymbolTableItemType = "array"
+	SymbolTableItemTypeConstant SymbolTableItemType = "constant"
+)
+
+type Scope struct {
+	ID     int
+	Level  int
+	Items  map[string]*SymbolTableItem
+	Parent *Scope
+}
+
+type SymbolTable struct {
+	LegacyScopes  []*Scope // for debugging purposes
+	CurrentScope  *Scope
+	EnterFunction func(*Scope) error
+	ExitFunction  func(*Scope) error
+
+	addrCounter  int
+	constantAddr int
+}
+
+const (
+	initialAddr  = 0x10000000
+	constantAddr = 0x20000000
+)
+
+func NewSymbolTable(enter, exit func(*Scope) error) *SymbolTable {
+	return &SymbolTable{
+		LegacyScopes:  make([]*Scope, 0),
+		CurrentScope:  nil,
+		EnterFunction: enter,
+		ExitFunction:  exit,
+		addrCounter:   initialAddr,
+		constantAddr:  constantAddr,
+	}
+}
+
+func (st *SymbolTable) EnterScope() error {
+	if st.CurrentScope == nil {
+		st.CurrentScope = &Scope{
+			ID:     len(st.LegacyScopes),
+			Level:  0,
+			Items:  make(map[string]*SymbolTableItem),
+			Parent: nil,
+		}
+	} else {
+		st.CurrentScope = &Scope{
+			ID:     len(st.LegacyScopes),
+			Level:  st.CurrentScope.Level + 1,
+			Items:  make(map[string]*SymbolTableItem),
+			Parent: st.CurrentScope,
+		}
+	}
+	st.LegacyScopes = append(st.LegacyScopes, st.CurrentScope)
+
+	if st.EnterFunction != nil {
+		if err := st.EnterFunction(st.CurrentScope); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (st *SymbolTable) ExitScope() error {
+	if st.CurrentScope == nil {
+		return fmt.Errorf("no scope to exit")
+	}
+
+	if st.ExitFunction != nil {
+		if err := st.ExitFunction(st.CurrentScope); err != nil {
+			return err
+		}
+	}
+
+	st.CurrentScope = st.CurrentScope.Parent
+	return nil
+}
+
+func (st *SymbolTable) Register(item *SymbolTableItem) error {
+	if st.CurrentScope == nil {
+		return fmt.Errorf("no scope to register item")
+	}
+
+	if _, exists := st.CurrentScope.Items[item.Variable]; exists {
+		return fmt.Errorf("item %s already exists in scope", item.Variable)
+	}
+
+	if item.VariableSize <= 0 {
+		return fmt.Errorf("invalid variable size for item %s", item.Variable)
+	}
+	st.CurrentScope.Items[item.Variable] = item
+	switch item.Type {
+	case SymbolTableItemTypeVariable:
+		st.addrCounter += item.VariableSize
+		item.Address = st.addrCounter
+	case SymbolTableItemTypeArray:
+		st.addrCounter += item.VariableSize * item.ArraySize
+		item.Address = st.addrCounter
+	case SymbolTableItemTypeConstant:
+		st.constantAddr += item.VariableSize * item.ArraySize
+		item.Address = st.constantAddr
+	}
+	return nil
+}
+
+func (st *SymbolTable) Lookup(variable string) (item *SymbolTableItem, findInCurrentScope bool, err error) {
+	if st.CurrentScope == nil {
+		return nil, false, fmt.Errorf("no scope to lookup item")
+	}
+
+	scope := st.CurrentScope
+	for scope != nil {
+		if item, exists := scope.Items[variable]; exists {
+			return item, scope == st.CurrentScope, nil
+		}
+		scope = scope.Parent
+	}
+
+	return nil, false, fmt.Errorf("item %s not found in any scope", variable)
+}

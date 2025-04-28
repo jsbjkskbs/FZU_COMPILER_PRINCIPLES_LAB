@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"sync"
 	"time"
 
@@ -21,6 +22,15 @@ func LexerTest() {
 	files, err := GetDirFiles(Config.Path + "lexer")
 	if err != nil {
 		panic(err)
+	}
+	if len(Config.Files) > 0 {
+		fs := []FileInfo{}
+		for _, file := range files {
+			if slices.Contains(Config.Files, file.Info.Name()) {
+				fs = append(fs, file)
+			}
+		}
+		files = fs
 	}
 	fmt.Print(log.Sprintf(
 		Divider(),

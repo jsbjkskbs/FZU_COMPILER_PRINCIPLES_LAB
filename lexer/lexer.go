@@ -526,7 +526,7 @@ func (l *Lexer) ReadOperator(r rune) (Token, error) {
 
 	// retract to the best match
 	retractStep := len(prefix) - len(bestMatch)
-	for i := 0; i < retractStep; i++ {
+	for range retractStep {
 		l.retract()
 	}
 

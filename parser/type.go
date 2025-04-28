@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"slices"
 
-	. "app/parser/grammar"
-	. "app/parser/production"
 	. "app/utils/collections"
 )
 
@@ -37,7 +35,7 @@ type State struct {
 	Transitions map[Symbol]*State
 }
 
-func (state State) Equals(other *State) bool {
+func (state *State) Equals(other *State) bool {
 	if len(state.Items) != len(other.Items) {
 		return false
 	}
@@ -52,8 +50,8 @@ func (state State) Equals(other *State) bool {
 
 type States []*State
 
-func (states States) Contains(state *State) bool {
-	for _, s := range states {
+func (states *States) Contains(state *State) bool {
+	for _, s := range *states {
 		if len(s.Items) != len(state.Items) {
 			continue
 		}
@@ -70,11 +68,11 @@ type LR1Item struct {
 	Lookahead  Terminal
 }
 
-func (i LR1Item) AsKey() string {
+func (i *LR1Item) AsKey() string {
 	return fmt.Sprintf("%s\a%s\a%d\a%s", i.Production.Head, i.Production.Body, i.Dot, i.Lookahead)
 }
 
-func (i LR1Item) String() string {
+func (i *LR1Item) String() string {
 	s := fmt.Sprintf("%s -> ", i.Production.Head)
 	for j, symbol := range i.Production.Body {
 		if j == i.Dot {
@@ -89,7 +87,7 @@ func (i LR1Item) String() string {
 	return s
 }
 
-func (i LR1Item) Equals(other LR1Item) bool {
+func (i *LR1Item) Equals(other LR1Item) bool {
 	if !i.Production.Equals(other.Production) {
 		return false
 	}
@@ -104,8 +102,8 @@ func (i LR1Item) Equals(other LR1Item) bool {
 
 type LR1Items []LR1Item
 
-func (items LR1Items) Contains(other LR1Item) bool {
-	return slices.ContainsFunc(items, func(item LR1Item) bool {
+func (items *LR1Items) Contains(other LR1Item) bool {
+	return slices.ContainsFunc(*items, func(item LR1Item) bool {
 		return item.Equals(other)
 	})
 }

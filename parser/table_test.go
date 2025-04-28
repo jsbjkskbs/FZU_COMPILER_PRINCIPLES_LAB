@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	. "app/parser"
-	. "app/parser/grammar"
-	. "app/parser/production"
 	. "app/utils/collections"
 )
 

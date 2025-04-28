@@ -3,8 +3,7 @@ package parser
 import (
 	"fmt"
 
-	. "app/parser/grammar"
-	. "app/parser/production"
+	"app/lexer"
 	. "app/utils/collections"
 )
 
@@ -13,7 +12,10 @@ type Walker struct {
 	Grammar *Grammar
 
 	States  Stack[int]
-	Symbols Stack[Symbol]
+	Symbols Stack[Symbol] // Symbols is just for debugging purposes
+	Tokens  Stack[*lexer.Token]
+
+	SymbolTable *SymbolTable
 }
 
 func (p *Parser) NewWalker() *Walker {
@@ -28,27 +30,31 @@ func (p *Parser) NewWalker() *Walker {
 			ActionTable: p.Table.ActionTable.Copy(),
 			GotoTable:   p.Table.GotoTable.Copy(),
 		},
-		Grammar: &g,
-		States:  states,
-		Symbols: symbols,
+		Grammar:     &g,
+		States:      states,
+		Symbols:     symbols,
+		SymbolTable: NewSymbolTable(nil, nil),
 	}
 }
 
-func (w *Walker) Next(symbol Symbol) (err error, action Action) {
+func (w *Walker) Next(symbol Symbol) (action Action, err error) {
 	topState, _ := w.States.Peek()
 	if w.Grammar.IsTerminal(symbol) {
 		action, ok := w.Table.ActionTable[topState][Terminal(symbol)]
 		if !ok {
-			return fmt.Errorf("no action found for state %d and symbol %s", topState, symbol), Action{Type: ERROR}
+			return Action{Type: ERROR}, fmt.Errorf("no action found for state %d and symbol %s", topState, symbol)
 		}
 		switch action.Type {
 		case SHIFT:
 			w.States.Push(action.Number)
 			w.Symbols.Push(symbol)
-			return nil, Action{Type: SHIFT, Number: action.Number}
+			return Action{Type: SHIFT, Number: action.Number}, nil
 		case REDUCE:
 			production := w.Grammar.Productions[action.Number]
-			for i := 0; i < len(production.Body); i++ {
+			if err := production.HandleRule(w); err != nil {
+				fmt.Println("Error handling rule:", err)
+			}
+			for i := range production.Body {
 				if production.Body[i] == EPSILON {
 					continue
 				}
@@ -58,29 +64,29 @@ func (w *Walker) Next(symbol Symbol) (err error, action Action) {
 			topState, _ = w.States.Peek()
 			gotoState, ok := w.Table.GotoTable[topState][production.Head]
 			if !ok {
-				return fmt.Errorf("no goto state found for state %d and symbol %s", topState, production.Head), Action{Type: ERROR}
+				return Action{Type: ERROR}, fmt.Errorf("no goto state found for state %d and symbol %s", topState, production.Head)
 			}
 			w.Symbols.Push(production.Head)
 			w.States.Push(gotoState)
-			return nil, Action{Type: REDUCE, Number: action.Number}
+			return Action{Type: REDUCE, Number: action.Number}, nil
 		case ACCEPT:
-			return nil, Action{Type: ACCEPT, Number: 0}
+			return Action{Type: ACCEPT, Number: 0}, nil
 		}
 	} else {
 		action, ok := w.Table.GotoTable[topState][symbol]
 		if !ok {
-			return fmt.Errorf("no goto state found for state %d and symbol %s", topState, symbol), Action{Type: ERROR}
+			return Action{Type: ERROR}, fmt.Errorf("no goto state found for state %d and symbol %s", topState, symbol)
 		}
 		w.States.Push(action)
 		w.Symbols.Push(symbol)
-		fmt.Println("GOTO", action)
-		return nil, Action{Type: GOTO, Number: action}
+		return Action{Type: GOTO, Number: action}, nil
 	}
-	return fmt.Errorf("unexpected state %d and symbol %s", topState, symbol), Action{Type: ERROR}
+	return Action{Type: ERROR}, fmt.Errorf("unexpected state %d and symbol %s", topState, symbol)
 }
 
 func (w *Walker) Reset() {
 	w.States.Clear()
 	w.Symbols.Clear()
+	w.Tokens.Clear()
 	w.States.Push(0)
 }

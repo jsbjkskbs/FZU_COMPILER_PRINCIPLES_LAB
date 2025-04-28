@@ -1,9 +1,8 @@
-package grammar
+package parser
 
 import (
 	"slices"
 
-	. "app/parser/production"
 	. "app/utils/collections"
 )
 
@@ -21,7 +20,7 @@ func NewGrammar() *Grammar {
 	}
 }
 
-func (g Grammar) Copy() Grammar {
+func (g *Grammar) Copy() Grammar {
 	return Grammar{
 		AugmentedProduction: g.AugmentedProduction,
 		Productions:         slices.Clone(g.Productions),
@@ -29,15 +28,15 @@ func (g Grammar) Copy() Grammar {
 	}
 }
 
-func (g Grammar) IsTerminal(symbol Symbol) bool {
+func (g *Grammar) IsTerminal(symbol Symbol) bool {
 	return g.Terminals.Contains(Terminal(symbol))
 }
 
-func (g Grammar) IsNonTerminal(symbol Symbol) bool {
+func (g *Grammar) IsNonTerminal(symbol Symbol) bool {
 	return !g.IsTerminal(symbol)
 }
 
-func (g Grammar) GetIndex(production Production) int {
+func (g *Grammar) GetIndex(production Production) int {
 	if production.Equals(g.AugmentedProduction) {
 		return 0
 	}

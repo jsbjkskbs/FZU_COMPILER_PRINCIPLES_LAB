@@ -68,3 +68,17 @@ func (s *Stack[T]) String() string {
 	result += "]"
 	return result
 }
+
+func (s *Stack[T]) Foreach(f func(T)) {
+	for _, v := range s.data {
+		f(v)
+	}
+}
+
+func (s *Stack[T]) PeekAtK(k int) (T, bool) {
+	if k < 0 || k >= len(s.data) {
+		var zeroValue T
+		return zeroValue, false
+	}
+	return s.data[len(s.data)-1-k], true
+}

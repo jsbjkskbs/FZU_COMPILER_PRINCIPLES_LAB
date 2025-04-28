@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	. "app/parser"
-	"app/parser/grammar"
-	. "app/parser/production"
 	. "app/utils/collections"
 	"app/utils/log"
 )
@@ -25,7 +23,7 @@ func TestWalker_Next(t *testing.T) {
 		fmt.Print(log.Sprintf(log.Argument{FrontColor: log.Blue, Highlight: true, Format: "State: %v", Args: []any{walker.States}}))
 		fmt.Print(log.Sprintf(log.Argument{FrontColor: log.Yellow, Highlight: true, Format: ", Symbols: %v", Args: []any{walker.Symbols}}))
 		fmt.Print(log.Sprintf(log.Argument{FrontColor: log.Magenta, Highlight: true, Format: ", Symbol: %s", Args: []any{seq[i]}}))
-		err, action := walker.Next(seq[i])
+		action, err := walker.Next(seq[i])
 		fmt.Print(log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: ", Action: %v", Args: []any{action}}))
 		if err != nil {
 			fmt.Print(log.Sprintf(log.Argument{FrontColor: log.Red, Highlight: true, Format: ", Error: %v", Args: []any{err}}))
@@ -95,7 +93,7 @@ func TestWalker_Next2(t *testing.T) {
 			fmt.Print(log.Sprintf(log.Argument{FrontColor: log.Blue, Highlight: true, Format: "State: %v", Args: []any{walker.States}}))
 			fmt.Print(log.Sprintf(log.Argument{FrontColor: log.Yellow, Highlight: true, Format: ", Symbols: %v", Args: []any{walker.Symbols}}))
 			fmt.Print(log.Sprintf(log.Argument{FrontColor: log.Magenta, Highlight: true, Format: ", Symbol: %s", Args: []any{seq[i]}}))
-			err, action := walker.Next(seq[i])
+			action, err := walker.Next(seq[i])
 			fmt.Print(log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: ", Action: %v", Args: []any{action}}))
 			if err != nil {
 				fmt.Print(log.Sprintf(log.Argument{FrontColor: log.Red, Highlight: true, Format: ", Error: %v\n", Args: []any{err}}))
@@ -114,7 +112,7 @@ func TestWalker_Next2(t *testing.T) {
 
 func TestWalker_Next3(t *testing.T) {
 	p := Parser{
-		Grammar: &grammar.Grammar{
+		Grammar: &Grammar{
 			AugmentedProduction: Production{
 				Head: "S'",
 				Body: []Symbol{"S"},
@@ -194,7 +192,7 @@ func TestWalker_Next3(t *testing.T) {
 		fmt.Print(log.Sprintf(log.Argument{FrontColor: log.Blue, Highlight: true, Format: "State: %v", Args: []any{walker.States}}))
 		fmt.Print(log.Sprintf(log.Argument{FrontColor: log.Yellow, Highlight: true, Format: ", Symbols: %v", Args: []any{walker.Symbols}}))
 		fmt.Print(log.Sprintf(log.Argument{FrontColor: log.Magenta, Highlight: true, Format: ", Symbol: %s", Args: []any{seq[i]}}))
-		err, action := walker.Next(seq[i])
+		action, err := walker.Next(seq[i])
 		fmt.Print(log.Sprintf(log.Argument{FrontColor: log.Green, Highlight: true, Format: ", Action: %v", Args: []any{action}}))
 		if err != nil {
 			fmt.Print(log.Sprintf(log.Argument{FrontColor: log.Red, Highlight: true, Format: ", Error: %v", Args: []any{err}}))

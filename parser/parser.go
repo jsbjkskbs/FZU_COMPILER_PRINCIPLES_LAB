@@ -7,12 +7,12 @@ import (
 	"slices"
 
 	"app/lexer"
-	. "app/parser/production"
 	"app/utils/log"
 )
 
 func (p *Parser) Parse(l *lexer.Lexer, logger func(string)) {
 	walker := p.NewWalker()
+	walker.SymbolTable.EnterScope()
 	for {
 		token, err := l.NextToken()
 		if err != nil && !errors.Is(err, io.EOF) {
@@ -24,10 +24,13 @@ func (p *Parser) Parse(l *lexer.Lexer, logger func(string)) {
 			token.Type = lexer.EOF
 		}
 		symbol := p.Reflect(token)
+		if token.SpecificType() == lexer.DelimiterLeftBrace {
+			walker.SymbolTable.EnterScope()
+		}
 
 		for {
 			logger(fmt.Sprintf("State: %v\nSymbols: %v\nSymbol: %s\n", walker.States, walker.Symbols, symbol))
-			err, action := walker.Next(symbol)
+			action, err := walker.Next(symbol)
 			if err != nil {
 				logger(fmt.Sprintf("Error: %v", err))
 				return
@@ -38,9 +41,33 @@ func (p *Parser) Parse(l *lexer.Lexer, logger func(string)) {
 			}
 		}
 
+		if token.SpecificType() == lexer.DelimiterRightBrace {
+			walker.SymbolTable.ExitScope()
+		}
+
 		if symbol == TERMINATE {
 			logger("Parsing completed successfully.")
 			break
+		}
+
+		walker.Tokens.Push(&token)
+	}
+
+	logger("Symbol Table:")
+	scopes := walker.SymbolTable.LegacyScopes[1:]
+	for _, scope := range scopes {
+		if scope == nil {
+			continue
+		}
+		logger(fmt.Sprintf("\n\nScope[%d]: \n", scope.ID))
+		logger(fmt.Sprintf("  Level: %d\n", scope.Level))
+		logger(fmt.Sprintln("  Symbols:"))
+		for _, symbol := range scope.Items {
+			if symbol == nil {
+				continue
+			}
+			logger(fmt.Sprintf("    0x%x -> %v:%v[alloc=%d] << at line %d, pos %d\n",
+				symbol.Address, symbol.Variable, symbol.UnderlyingType, symbol.VariableSize, symbol.Line, symbol.Pos))
 		}
 	}
 }

@@ -341,7 +341,48 @@ func (t *Token) SpecificType() TokenSpecificType {
 }
 
 func (t *Token) String() string {
-	return fmt.Sprintf("(%v, %s, %v)", t.Type, t.Val, t._type)
+	return fmt.Sprintf("(%v, %s)", t.Type, t.Val)
+}
+
+func (t *Token) AllocSize() int {
+	if t.Type != TYPE {
+		return -1
+	}
+	switch t._type {
+	case TypeInt:
+		return 4
+	case TypeInt8:
+		return 1
+	case TypeInt16:
+		return 2
+	case TypeInt32:
+		return 4
+	case TypeInt64:
+		return 8
+	case TypeUnsignedInt:
+		return 4
+	case TypeUnsignedInt8:
+		return 1
+	case TypeUnsignedInt16:
+		return 2
+	case TypeUnsignedInt32:
+		return 4
+	case TypeUnsignedInt64:
+		return 8
+	case TypeFloat:
+		return 4
+	case TypeFloat32:
+		return 4
+	case TypeFloat64:
+		return 8
+	case TypeBool:
+		return 1
+	case TypeString:
+		return -1 // string is a reference type, so it doesn't have a fixed size
+	case TypeByte:
+		return 1
+	}
+	return -1
 }
 
 func (t *Token) parseType() {
