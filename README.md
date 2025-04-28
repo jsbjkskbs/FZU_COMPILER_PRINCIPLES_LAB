@@ -1,3 +1,13 @@
+<div align="center">
+
+# Compiler Principles Lab - Fuzhou University
+
+</div>
+
+<div align="center">
+English | <a href="README.zh.md">中文</a>
+</div>
+
 # Introduction
 
 ## What's this?
@@ -9,16 +19,16 @@ cover them (there may be some bugs).
 ## How to run
 
 1. Install Golang (1.23.6 or higher)
-2. Install Go modules
+2. Install Go modules(actually does not depend on any third-party libraries)
    ```bash
    go mod tidy
    ```
 3. Build the program
    - Linux/Unix
-     ```bash
+      ```bash
       make build
-     ```
-    - Windows
+      ```
+   - Windows
       ```bash
       make.bat build
       ```
@@ -27,13 +37,7 @@ cover them (there may be some bugs).
    ```bash
    ./bin/xxx -h
    ```
-   Here is help information for the `-h` flag:
-   ```
-   Usage of ./bin/mmap:
-    -b    Enable benchmark mode
-    -lexer--no-buffered
-    Use no buffered reader for lexer
-    -s    Stop writing results to file
-    -t string
-    Target to run: lexer or parser (default "lexer")
-    ```
+
+## Documentation
+
+1. [Lexer](/docs/lexer.md)
