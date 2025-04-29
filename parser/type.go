@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"slices"
+	"sync"
 
 	. "app/utils/collections"
 )
@@ -16,6 +17,8 @@ type Parser struct {
 	States States
 
 	Table *LRTable
+
+	_mu sync.Mutex
 }
 
 func NewParser() *Parser {
@@ -24,6 +27,8 @@ func NewParser() *Parser {
 		Symbols:  Set[Symbol]{},
 		FirstSet: FirstSet{},
 		States:   States{},
+
+		_mu: sync.Mutex{},
 	}
 }
 

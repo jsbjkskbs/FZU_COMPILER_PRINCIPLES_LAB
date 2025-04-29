@@ -41,3 +41,4 @@ cover them (there may be some bugs).
 ## Documentation
 
 1. [Lexer](/docs/lexer.md)
+2. [Parser](/docs/parser.md)

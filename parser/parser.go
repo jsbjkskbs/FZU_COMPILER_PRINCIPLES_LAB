@@ -108,6 +108,8 @@ func (p *Parser) EnsureStates() {
 }
 
 func (p *Parser) EnsureTable() {
+	p._mu.Lock()
+	defer p._mu.Unlock()
 	if p.Table == nil {
 		p.OptimizedHeadsCheck()
 		p.BuildTable()

@@ -39,3 +39,4 @@
 ## 文档
 
 1. [词法分析器](/docs/lexer.zh.md)
+2. [语法分析器](/docs/parser.zh.md)
