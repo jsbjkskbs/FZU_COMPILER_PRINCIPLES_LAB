@@ -31,6 +31,23 @@ func (s *Stack[T]) Pop() (T, bool) {
 	return value, true
 }
 
+func (s *Stack[T]) TrimTopN(n int) {
+	if n <= 0 || n > len(s.data) {
+		return
+	}
+	s.data = s.data[:len(s.data)-n]
+}
+
+func (s *Stack[T]) PopTopN(n int) []T {
+	if n <= 0 || n > len(s.data) {
+		return nil
+	}
+	values := make([]T, n)
+	copy(values, s.data[len(s.data)-n:])
+	s.data = s.data[:len(s.data)-n]
+	return values
+}
+
 // Peek returns the top element of the stack without removing it.
 func (s *Stack[T]) Peek() (T, bool) {
 	if len(s.data) == 0 {

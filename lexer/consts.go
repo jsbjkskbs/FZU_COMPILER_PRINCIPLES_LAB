@@ -21,6 +21,8 @@ const (
 	IMPORT
 	PACKAGE
 	IDENTIFIER
+
+	EXTRA = 0xff
 )
 
 // ItemType stand for the type of token
@@ -50,6 +52,8 @@ func (i ItemType) ToString() string {
 		return "包"
 	case IDENTIFIER:
 		return "标识符"
+	case EXTRA:
+		return "拓展类型"
 	default:
 		return "未知类型"
 	}

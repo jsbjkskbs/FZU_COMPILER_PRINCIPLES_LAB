@@ -224,13 +224,16 @@ func (st *SymbolTable) Register(item *SymbolTableItem) error {
 	switch item.Type {
 	case SymbolTableItemTypeVariable:
 		item.Address = st.addrCounter
-		st.addrCounter += item.VariableSize
+		st.addrCounter += item.VariableSize / 4
+		if item.VariableSize/4*4 != item.VariableSize {
+			st.addrCounter++
+		}
 	case SymbolTableItemTypeArray:
 		item.Address = st.addrCounter
-		st.addrCounter += item.VariableSize * item.ArraySize
-	case SymbolTableItemTypeConstant:
-		item.Address = st.constantAddr
-		st.constantAddr += item.VariableSize * item.ArraySize
+		st.addrCounter += item.VariableSize * item.ArraySize / 4
+		if item.VariableSize*item.ArraySize/4*4 != item.VariableSize*item.ArraySize {
+			st.addrCounter++
+		}
 	}
 	return nil
 }
@@ -253,4 +256,13 @@ func (st *SymbolTable) Lookup(variable string) (item *SymbolTableItem, findInCur
 	}
 
 	return nil, false, fmt.Errorf("item %s not found in any scope", variable)
+}
+
+func (st *SymbolTable) TempAddr(size int) int {
+	addr := st.addrCounter
+	st.addrCounter += size / 4
+	if size/4*4 != size {
+		st.addrCounter++
+	}
+	return addr
 }

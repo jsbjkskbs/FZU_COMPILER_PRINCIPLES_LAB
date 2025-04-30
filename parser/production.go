@@ -177,7 +177,7 @@ var Productions = []Production{
 	{
 		Head: "unmatched_stmt",
 		Body: []Symbol{"if", "(", "bool", ")", "matched_stmt", "else", "unmatched_stmt"},
-		Rule: GenRules.UnmatchedStmtElse,
+		Rule: GenRules.UnmatchedStmtIfElse,
 	},
 	// matched_stmt → loc = bool ;
 	{
@@ -185,10 +185,15 @@ var Productions = []Production{
 		Body: []Symbol{"loc", "=", "bool", ";"},
 		Rule: GenRules.MatchedStmtAssign,
 	},
-	// matched_stmt → if ( bool ) matched_stmt else matched_stmt
+	// matched_stmt → if ( bool ) matched_stmt else matched_stmt | if ( bool ) matched_stmt
 	{
 		Head: "matched_stmt",
 		Body: []Symbol{"if", "(", "bool", ")", "matched_stmt", "else", "matched_stmt"},
+		Rule: GenRules.MatchedStmtIfElse,
+	},
+	{
+		Head: "matched_stmt",
+		Body: []Symbol{"if", "(", "bool", ")", "matched_stmt"},
 		Rule: GenRules.MatchedStmtIf,
 	},
 	// matched_stmt → while ( bool ) stmt
@@ -201,7 +206,7 @@ var Productions = []Production{
 	{
 		Head: "matched_stmt",
 		Body: []Symbol{"do", "stmt", "while", "(", "bool", ")", ";"},
-		Rule: GenRules.MatchedStmtDo,
+		Rule: GenRules.MatchedStmtDoWhile,
 	},
 	// matched_stmt → break ;
 	{
@@ -230,7 +235,7 @@ var Productions = []Production{
 	{
 		Head: "bool",
 		Body: []Symbol{"bool", "||", "join"},
-		Rule: GenRules.BoolJoin,
+		Rule: GenRules.Bool,
 	},
 	{
 		Head: "bool",
@@ -357,7 +362,7 @@ var Productions = []Production{
 	{
 		Head: "factor",
 		Body: []Symbol{"real"},
-		Rule: GenRules.FactorNum,
+		Rule: GenRules.FactorReal,
 	},
 	{
 		Head: "factor",

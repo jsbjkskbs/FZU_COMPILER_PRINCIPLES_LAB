@@ -16,11 +16,14 @@ type Walker struct {
 
 	States  Stack[int]
 	Symbols Stack[Symbol] // Symbols is just for debugging purposes
-	Tokens  Stack[*lexer.Token]
+	Tokens  Stack[*ASTNode]
 
 	SymbolTable *SymbolTable
 
-	Environment *Environment
+	Environment  *Environment
+	ThreeAddress []string
+
+	ast *AbstractSyntaxTree
 }
 
 type Environment struct {
@@ -31,6 +34,10 @@ type Environment struct {
 	CurrentVariable  string
 
 	CurrentUnary any
+
+	LabelCounter    int
+	BreakLabelStack Stack[int]
+	ItemStack       Stack[any]
 }
 
 // NewEnvironment creates a new Environment instance and initializes it.
@@ -56,6 +63,8 @@ func (env *Environment) Reset() {
 	env.CurrentArraySize = -1
 	env.CurrentVariable = ""
 	env.CurrentUnary = nil
+	env.LabelCounter = 0
+	env.BreakLabelStack = Stack[int]{}
 }
 
 // NewWalker creates a new Walker instance and initializes it with the
@@ -146,4 +155,41 @@ func (w *Walker) Reset() {
 	w.Symbols.Clear()
 	w.Tokens.Clear()
 	w.States.Push(0)
+}
+
+func (w *Walker) NewLabel() int {
+	w.Environment.LabelCounter++
+	return w.Environment.LabelCounter - 1
+}
+
+func (w *Walker) Emit(dist string, op string, args ...any) {
+	if op == "" {
+		w.ThreeAddress = append(w.ThreeAddress, fmt.Sprintf("%s = %s", dist, args[0]))
+	} else {
+		w.ThreeAddress = append(w.ThreeAddress, fmt.Sprintf("%s = %s %s %s", dist, args[0], op, args[1]))
+	}
+}
+
+func (w *Walker) EmitLabel(label int) {
+	w.ThreeAddress = append(w.ThreeAddress, fmt.Sprintf("L%d:", label))
+}
+
+func (w *Walker) GetBreakLabel() int {
+	if w.Environment.BreakLabelStack.IsEmpty() {
+		return -1
+	}
+	t, _ := w.Environment.BreakLabelStack.Peek()
+	return t
+}
+
+func (w *Walker) EnterLoop() {
+	label := w.NewLabel()
+	w.Environment.BreakLabelStack.Push(label)
+}
+
+func (w *Walker) ExitLoop() {
+	if w.Environment.BreakLabelStack.IsEmpty() {
+		return
+	}
+	w.Environment.BreakLabelStack.Pop()
 }

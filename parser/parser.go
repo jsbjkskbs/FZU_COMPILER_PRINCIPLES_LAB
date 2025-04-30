@@ -26,7 +26,7 @@ func (p *Parser) Parse(l *lexer.Lexer, logger func(string)) {
 		if errors.Is(err, io.EOF) {
 			token.Type = lexer.EOF
 		}
-		symbol := p.Reflect(token)
+		symbol := p.Reflect(&token)
 		if token.SpecificType() == lexer.DelimiterLeftBrace {
 			walker.SymbolTable.EnterScope()
 		}
@@ -53,45 +53,13 @@ func (p *Parser) Parse(l *lexer.Lexer, logger func(string)) {
 			break
 		}
 
-		walker.Tokens.Push(&token)
-	}
-
-	logger("Symbol Table:")
-	scopes := walker.SymbolTable.LegacyScopes[1:]
-	for _, scope := range scopes {
-		if scope == nil {
-			continue
-		}
-		logger(fmt.Sprintf("\n\nScope[%d]: \n", scope.ID))
-		logger(fmt.Sprintf("  Level: %d\n", scope.Level))
-		logger(fmt.Sprintln("  Symbols:"))
-
-		items := make([]*SymbolTableItem, 0, len(scope.Items))
-		for _, symbol := range scope.Items {
-			if symbol == nil {
-				continue
-			}
-			items = append(items, symbol)
-		}
-		slices.SortFunc(items, func(a, b *SymbolTableItem) int {
-			return a.Address - b.Address
-		})
-		for _, symbol := range items {
-			logger(fmt.Sprintf("    0x%x -> %v:%v",
-				symbol.Address, symbol.Variable, symbol.UnderlyingType))
-			if symbol.Type == SymbolTableItemTypeArray {
-				logger(fmt.Sprintf("[%d] alloc=(%d bytes)", symbol.ArraySize, symbol.ArraySize*symbol.VariableSize))
-			} else {
-				logger(fmt.Sprintf(" alloc=%d", symbol.VariableSize))
-			}
-			logger(fmt.Sprintf(" << at line %d, pos %d\n", symbol.Line, symbol.Pos))
-		}
+		walker.Tokens.Push(p.Token2ASTNode(&token))
 	}
 }
 
 // Reflect converts a lexer.Token to a Symbol.
 // It maps specific token types to corresponding symbols and returns the symbol representation.
-func (p *Parser) Reflect(token lexer.Token) Symbol {
+func (p *Parser) Reflect(token *lexer.Token) Symbol {
 	switch token.Type {
 	case lexer.INTEGER:
 		return "num"
