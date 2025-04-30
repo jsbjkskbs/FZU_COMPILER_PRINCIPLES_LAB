@@ -10,6 +10,9 @@ import (
 	"app/utils/log"
 )
 
+// Parse is the main function that parses the input tokens using the LR(1) parser algorithm.
+// It takes a lexer.Lexer instance and a logger function as arguments.
+// The logger function is used to log messages during the parsing process.
 func (p *Parser) Parse(l *lexer.Lexer, logger func(string)) {
 	walker := p.NewWalker()
 	walker.SymbolTable.EnterScope()
@@ -62,16 +65,32 @@ func (p *Parser) Parse(l *lexer.Lexer, logger func(string)) {
 		logger(fmt.Sprintf("\n\nScope[%d]: \n", scope.ID))
 		logger(fmt.Sprintf("  Level: %d\n", scope.Level))
 		logger(fmt.Sprintln("  Symbols:"))
+
+		items := make([]*SymbolTableItem, 0, len(scope.Items))
 		for _, symbol := range scope.Items {
 			if symbol == nil {
 				continue
 			}
-			logger(fmt.Sprintf("    0x%x -> %v:%v[alloc=%d] << at line %d, pos %d\n",
-				symbol.Address, symbol.Variable, symbol.UnderlyingType, symbol.VariableSize, symbol.Line, symbol.Pos))
+			items = append(items, symbol)
+		}
+		slices.SortFunc(items, func(a, b *SymbolTableItem) int {
+			return a.Address - b.Address
+		})
+		for _, symbol := range items {
+			logger(fmt.Sprintf("    0x%x -> %v:%v",
+				symbol.Address, symbol.Variable, symbol.UnderlyingType))
+			if symbol.Type == SymbolTableItemTypeArray {
+				logger(fmt.Sprintf("[%d] alloc=(%d bytes)", symbol.ArraySize, symbol.ArraySize*symbol.VariableSize))
+			} else {
+				logger(fmt.Sprintf(" alloc=%d", symbol.VariableSize))
+			}
+			logger(fmt.Sprintf(" << at line %d, pos %d\n", symbol.Line, symbol.Pos))
 		}
 	}
 }
 
+// Reflect converts a lexer.Token to a Symbol.
+// It maps specific token types to corresponding symbols and returns the symbol representation.
 func (p *Parser) Reflect(token lexer.Token) Symbol {
 	switch token.Type {
 	case lexer.INTEGER:

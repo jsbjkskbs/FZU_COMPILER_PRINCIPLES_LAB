@@ -37,7 +37,6 @@ func LexerAct(str string) (tokens []lexer.Token, errCount int) {
 				log.Sprintf(log.Argument{FrontColor: log.Yellow, Format: "%s", Args: []any{token.Val}}),
 				log.Sprintf(log.Argument{FrontColor: log.Blue, Format: "%s", Args: []any{token.SpecificType().ToString()}}),
 			)
-
 		}
 		tokens = append(tokens, token)
 		if errors.Is(err, io.EOF) {
@@ -508,7 +507,8 @@ Line 2"
 "Hello, World!"
 // It will ignore escape sequences like \n, \t, and \"
 \n\t\"\a`},
-		}},
+		},
+	},
 }
 
 func TestLexer(t *testing.T) {

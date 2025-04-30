@@ -20,6 +20,7 @@ func NewGrammar() *Grammar {
 	}
 }
 
+// Copy creates a deep copy of the Grammar instance.
 func (g *Grammar) Copy() Grammar {
 	return Grammar{
 		AugmentedProduction: g.AugmentedProduction,
@@ -28,14 +29,17 @@ func (g *Grammar) Copy() Grammar {
 	}
 }
 
+// IsTerminal checks if the given symbol is a terminal symbol in the grammar.
 func (g *Grammar) IsTerminal(symbol Symbol) bool {
 	return g.Terminals.Contains(Terminal(symbol))
 }
 
+// IsNonTerminal checks if the given symbol is a non-terminal symbol in the grammar.
 func (g *Grammar) IsNonTerminal(symbol Symbol) bool {
 	return !g.IsTerminal(symbol)
 }
 
+// GetIndex returns the index of the given production in the grammar's productions slice.
 func (g *Grammar) GetIndex(production Production) int {
 	if production.Equals(g.AugmentedProduction) {
 		return 0

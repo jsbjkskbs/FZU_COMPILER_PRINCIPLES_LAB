@@ -7,6 +7,9 @@ import (
 	. "app/utils/collections"
 )
 
+// Walker is a structure that represents the current state of the parser
+// during the parsing process. It contains information about the current
+// state, the symbols being processed, and the grammar being used.
 type Walker struct {
 	Table   LRTable
 	Grammar *Grammar
@@ -16,8 +19,49 @@ type Walker struct {
 	Tokens  Stack[*lexer.Token]
 
 	SymbolTable *SymbolTable
+
+	Environment *Environment
 }
 
+type Environment struct {
+	CurrentType      SymbolTableItemType
+	CurrentDataType  lexer.TokenSpecificType
+	CurrentDataSize  int
+	CurrentArraySize int
+	CurrentVariable  string
+
+	CurrentUnary any
+}
+
+// NewEnvironment creates a new Environment instance and initializes it.
+// The Environment is used to store the current state of the parser, including
+// the current type, data type, data size, array size, variable name, etc.
+// It is used to keep track of the current context during parsing and code generation.
+// The Environment is reset to its initial state when a new parsing context is created.
+func NewEnvironment() *Environment {
+	e := &Environment{}
+	e.Reset()
+	return e
+}
+
+// Reset resets the environment to its initial state.
+// The Walker operates in a bottom-up manner, as dictated by the grammar, and
+// does not access parts of the parse tree that are not directly involved in
+// the current context. This ensures that the parsing process adheres strictly
+// to the grammar's rules and structure. So, there's no need to reset the environment.
+func (env *Environment) Reset() {
+	env.CurrentType = SymbolTableItemTypeUnknown
+	env.CurrentDataType = 0xff
+	env.CurrentDataSize = -1
+	env.CurrentArraySize = -1
+	env.CurrentVariable = ""
+	env.CurrentUnary = nil
+}
+
+// NewWalker creates a new Walker instance and initializes it with the
+// grammar and action tables. The Walker is used to traverse the parse tree
+// and perform actions based on the grammar rules. It maintains a stack of
+// states and symbols, as well as a symbol table for managing variables and types.
 func (p *Parser) NewWalker() *Walker {
 	p.EnsureTable()
 
@@ -34,9 +78,20 @@ func (p *Parser) NewWalker() *Walker {
 		States:      states,
 		Symbols:     symbols,
 		SymbolTable: NewSymbolTable(nil, nil),
+		Environment: NewEnvironment(),
 	}
 }
 
+// Next processes the next symbol in the parsing process. It takes a symbol as input
+// and returns an action and an error. The action can be SHIFT, REDUCE, ACCEPT, or ERROR.
+// The function uses the current state and the symbol to determine the appropriate action
+// to take.
+// If the action is ACCEPT, it indicates that the parsing is complete.
+// If the action is SHIFT, it pushes the new state and symbol onto the stacks.
+// If the action is REDUCE, it pops the appropriate number of symbols from the stacks
+// and applies the corresponding production rule. If the action is ACCEPT, it indicates
+// that the parsing is complete.
+// If there is an error, it returns an error message.
 func (w *Walker) Next(symbol Symbol) (action Action, err error) {
 	topState, _ := w.States.Peek()
 	if w.Grammar.IsTerminal(symbol) {
@@ -84,6 +139,8 @@ func (w *Walker) Next(symbol Symbol) (action Action, err error) {
 	return Action{Type: ERROR}, fmt.Errorf("unexpected state %d and symbol %s", topState, symbol)
 }
 
+// Reset resets the Walker's state, symbol, and token stacks to their initial state.
+// It clears the stacks and pushes the initial state (0) onto the state stack.
 func (w *Walker) Reset() {
 	w.States.Clear()
 	w.Symbols.Clear()

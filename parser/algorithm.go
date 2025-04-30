@@ -6,6 +6,11 @@ import (
 	. "app/utils/collections"
 )
 
+// BuildStates constructs the LR(1) states for the parser based on the grammar.
+// It initializes the initial state with the augmented production and computes the closure of the items.
+// Then, it iterates through the states and computes the GOTO for each symbol, creating new states as needed.
+// The resulting states are stored in the Parser's States field.
+// The function ensures that the symbols are built before constructing the states.
 func (p *Parser) BuildStates() {
 	p.EnsureSymbols()
 
@@ -54,6 +59,7 @@ func (p *Parser) BuildStates() {
 	}
 }
 
+// BuildSymbols constructs the set of symbols used in the grammar by iterating through the productions.
 func (p *Parser) BuildSymbols() {
 	p.Symbols = Set[Symbol]{}
 	for _, production := range p.Grammar.Productions {
@@ -66,6 +72,7 @@ func (p *Parser) BuildSymbols() {
 	p.Symbols.Remove(EPSILON)
 }
 
+// BuildFirstSet constructs the FirstSet for the parser based on the grammar's productions.
 func (p *Parser) BuildFirstSet() {
 	p.EnsureSymbols()
 	p.FirstSet = make(FirstSet)
@@ -132,6 +139,8 @@ func (p *Parser) BuildFirstSet() {
 	}
 }
 
+// CLOSURE computes the closure of a set of LR1 items.
+// It adds new items to the closure based on the productions of the grammar and the lookahead symbols.
 func (p *Parser) CLOSURE(items []LR1Item) []LR1Item {
 	p.EnsureFirstSet()
 
@@ -198,6 +207,8 @@ func (p *Parser) CLOSURE(items []LR1Item) []LR1Item {
 	return closure
 }
 
+// GOTO computes the GOTO set of LR1 items for a given symbol.
+// It iterates through the items and checks if the dot position is at the symbol's index in the production body.
 func (p *Parser) GOTO(items LR1Items, symbol Symbol) LR1Items {
 	gotoItems := LR1Items{}
 	for _, item := range items {
@@ -213,6 +224,8 @@ func (p *Parser) GOTO(items LR1Items, symbol Symbol) LR1Items {
 	return p.CLOSURE(gotoItems)
 }
 
+// findLookaheads computes the lookahead symbols for a given set of symbols and a lookahead terminal.
+// It checks if the symbols are empty or if they contain epsilon, and adds the lookahead terminal accordingly.
 func (p *Parser) findLookaheads(symbols []Symbol, lookahead Terminal) Set[Terminal] {
 	if len(symbols) == 0 {
 		s := Set[Terminal]{}

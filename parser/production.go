@@ -15,6 +15,7 @@ type Production struct {
 
 type Rule func(*Walker) error
 
+// Equals checks if two productions are equal by comparing their heads and bodies.
 func (p *Production) Equals(other Production) bool {
 	if p.Head != other.Head {
 		return false
@@ -22,6 +23,7 @@ func (p *Production) Equals(other Production) bool {
 	return slices.Equal(p.Body, other.Body)
 }
 
+// HandleRule executes the rule associated with the production if it is not nil.
 func (p *Production) HandleRule(walker *Walker) error {
 	if p.Rule == nil {
 		return nil
@@ -31,12 +33,14 @@ func (p *Production) HandleRule(walker *Walker) error {
 
 type Symbol string
 
+// IsEpsilon checks if the symbol is equal to EPSILON.
 func (s *Symbol) IsEpsilon() bool {
 	return *s == EPSILON
 }
 
 type Terminal string
 
+// IsEpsilon checks if the terminal is equal to EPSILON.
 func (t *Terminal) IsEpsilon() bool {
 	return *t == EPSILON
 }

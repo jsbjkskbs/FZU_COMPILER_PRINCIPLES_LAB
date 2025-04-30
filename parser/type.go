@@ -40,6 +40,7 @@ type State struct {
 	Transitions map[Symbol]*State
 }
 
+// Equals checks if two states are equal by comparing their items.
 func (state *State) Equals(other *State) bool {
 	if len(state.Items) != len(other.Items) {
 		return false
@@ -73,10 +74,12 @@ type LR1Item struct {
 	Lookahead  Terminal
 }
 
+// AsKey generates a unique key for the LR1Item based on its production, dot position, and lookahead symbol.
 func (i *LR1Item) AsKey() string {
 	return fmt.Sprintf("%s\a%s\a%d\a%s", i.Production.Head, i.Production.Body, i.Dot, i.Lookahead)
 }
 
+// String returns a string representation of the LR1Item.
 func (i *LR1Item) String() string {
 	s := fmt.Sprintf("%s -> ", i.Production.Head)
 	for j, symbol := range i.Production.Body {
@@ -92,6 +95,8 @@ func (i *LR1Item) String() string {
 	return s
 }
 
+// Equals checks if two LR1Items are equal.
+// It compares the production, dot position, and lookahead symbol.
 func (i *LR1Item) Equals(other LR1Item) bool {
 	if !i.Production.Equals(other.Production) {
 		return false
@@ -107,6 +112,7 @@ func (i *LR1Item) Equals(other LR1Item) bool {
 
 type LR1Items []LR1Item
 
+// Contains checks if the LR1Items slice contains a specific LR1Item.
 func (items *LR1Items) Contains(other LR1Item) bool {
 	return slices.ContainsFunc(*items, func(item LR1Item) bool {
 		return item.Equals(other)

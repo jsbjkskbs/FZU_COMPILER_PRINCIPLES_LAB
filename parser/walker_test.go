@@ -84,8 +84,10 @@ func TestWalker_Next2(t *testing.T) {
 		{"{", "basic", "id", ";", "id", "=", "(", "num", ">", "num", ")", ";", "}", TERMINATE},
 		{"{", "basic", "id", ";", "{", "basic", "id", ";", "}", "}", TERMINATE},
 		{"{", "if", "(", "bool", ")", "{", "basic", "id", ";", "}", "else", "{", "basic", "id", ";", "}", "}", TERMINATE},
-		{"{", "if", "(", "bool", ")", "{", "basic", "id", ";", "}", "else", "{", "basic", "id", ";",
-			"if", "(", "bool", ")", "{", "basic", "id", ";", "}", "else", "{", "basic", "id", ";", "}", "}", "}", TERMINATE},
+		{
+			"{", "if", "(", "bool", ")", "{", "basic", "id", ";", "}", "else", "{", "basic", "id", ";",
+			"if", "(", "bool", ")", "{", "basic", "id", ";", "}", "else", "{", "basic", "id", ";", "}", "}", "}", TERMINATE,
+		},
 	}
 	fmt.Println("=======================")
 	for _, seq := range seqs {

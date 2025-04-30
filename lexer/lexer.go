@@ -21,6 +21,7 @@ type Lexer struct {
 	_lineLengths []int64
 }
 
+// NewLexer creates a new Lexer instance with the given io.Reader.
 func NewLexer(r io.Reader) *Lexer {
 	var reader io.RuneScanner
 	if _PrintNoBufferReaderOnce.CompareAndSwap(false, true) {
@@ -42,6 +43,7 @@ func NewLexer(r io.Reader) *Lexer {
 	}
 }
 
+// NextToken reads the next token from the input stream and returns it.
 func (l *Lexer) NextToken() (Token, error) {
 	if l._reader == nil {
 		return Token{}, fmt.Errorf("lexer is not initialized")
@@ -51,6 +53,8 @@ func (l *Lexer) NextToken() (Token, error) {
 	return token, err
 }
 
+// nextToken is a helper function that reads the next token from the input stream.
+// It handles whitespace, comments, strings, characters, words, numbers, and operators.
 func (l *Lexer) nextToken() (Token, error) {
 	err := l.skipWhiteSpace()
 	if errors.Is(err, io.EOF) {
@@ -124,6 +128,8 @@ func (l *Lexer) nextToken() (Token, error) {
 	return Token{}, fmt.Errorf("unknown character: %c, at line %d, pos %d", r, l._line, l._pos)
 }
 
+// nextRune reads the next rune from the input stream and updates the line and position counters.
+// It also handles line breaks and updates the line lengths slice.
 func (l *Lexer) nextRune() (rune, error) {
 	r, _, err := l._reader.ReadRune()
 	if err != nil {
@@ -139,6 +145,8 @@ func (l *Lexer) nextRune() (rune, error) {
 	return r, nil
 }
 
+// retract moves the position back by one rune in the input stream.
+// It updates the line and position counters accordingly.
 func (l *Lexer) retract() {
 	_ = l._reader.UnreadRune()
 	if l._pos > 0 {
@@ -150,6 +158,8 @@ func (l *Lexer) retract() {
 	}
 }
 
+// skipWhiteSpace skips over whitespace characters in the input stream.
+// It continues reading until a non-whitespace character is found or EOF is reached.
 func (l *Lexer) skipWhiteSpace() error {
 	for {
 		r, err := l.nextRune()
@@ -163,6 +173,8 @@ func (l *Lexer) skipWhiteSpace() error {
 	}
 }
 
+// skipAnnotation skips over single-line comments in the input stream.
+// It continues reading until a newline character is found or EOF is reached.
 func (l *Lexer) skipAnnotation() error {
 	for {
 		r, err := l.nextRune()
@@ -175,6 +187,8 @@ func (l *Lexer) skipAnnotation() error {
 	}
 }
 
+// skipAnnotation2 skips over multi-line comments in the input stream.
+// It continues reading until the closing comment sequence "*/" is found or EOF is reached.
 func (l *Lexer) skipAnnotation2() error {
 	for {
 		r1, err := l.nextRune()
@@ -193,6 +207,8 @@ func (l *Lexer) skipAnnotation2() error {
 	}
 }
 
+// ReadString reads a double-quoted string from the input stream.
+// It handles escape sequences, unicode, and octal characters.
 func (l *Lexer) ReadString() (Token, error) {
 	s := ""
 	escape := false
@@ -305,6 +321,7 @@ func (l *Lexer) ReadString() (Token, error) {
 	return Token{Type: STRING, Val: s, Line: l._line, Pos: l._pos, _type: ConstantStringDoubleQuote}, nil
 }
 
+// ReadString2 reads a backtick-quoted string from the input stream.
 func (l *Lexer) ReadString2() (Token, error) {
 	s := ""
 	for {
@@ -324,6 +341,8 @@ func (l *Lexer) ReadString2() (Token, error) {
 	return Token{Type: STRING, Val: s, Line: l._line, Pos: l._pos, _type: ConstantStringBacktick}, nil
 }
 
+// ReadChar reads a single-quoted character from the input stream.
+// It handles escape sequences, unicode, and octal characters.
 func (l *Lexer) ReadChar() (Token, error) {
 	s := ""
 	escape := false
@@ -402,6 +421,8 @@ func (l *Lexer) ReadChar() (Token, error) {
 	return Token{Type: CHAR, Val: s, Line: l._line, Pos: l._pos}, nil
 }
 
+// ReadWord reads a word (identifier or keyword) from the input stream.
+// It handles letters, digits, and underscores.
 func (l *Lexer) ReadWord(r rune) (Token, error) {
 	s := string(r)
 	var errWhenPassed error
@@ -425,6 +446,8 @@ func (l *Lexer) ReadWord(r rune) (Token, error) {
 	}
 }
 
+// ReadNumber reads a number (integer or float) from the input stream.
+// It handles digits, letters, underscores, and hexadecimal numbers.
 func (l *Lexer) ReadNumber(r rune) (Token, error) {
 	s := string(r)
 	illegalSuffix := false
@@ -485,6 +508,8 @@ func (l *Lexer) ReadNumber(r rune) (Token, error) {
 	}
 }
 
+// ReadOperator reads an operator from the input stream.
+// It handles multi-character operators and checks for valid operators.
 func (l *Lexer) ReadOperator(r rune) (Token, error) {
 	prefix := string(r)
 	previousSet := _Operators

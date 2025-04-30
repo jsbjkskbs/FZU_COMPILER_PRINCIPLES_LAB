@@ -22,7 +22,6 @@ func main() {
 	default:
 		println("Unknown mode:", Config.Target)
 	}
-
 }
 
 func EnvChecker() {

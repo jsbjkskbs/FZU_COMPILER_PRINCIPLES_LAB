@@ -1,0 +1,10 @@
+{
+    int[6] arr;
+    float[4] arr2;
+    int[1] arr3;
+    {
+        int[114514] arr;
+    }
+    int v;
+    float v2;
+}

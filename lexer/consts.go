@@ -23,6 +23,7 @@ const (
 	IDENTIFIER
 )
 
+// ItemType stand for the type of token
 func (i ItemType) ToString() string {
 	switch i {
 	case EOF:
@@ -336,14 +337,20 @@ type Token struct {
 	_type TokenSpecificType
 }
 
+// SpecificType returns the specific type of the token
+// It is used to determine the specific type of the token, such as int, float, string, etc.
 func (t *Token) SpecificType() TokenSpecificType {
 	return t._type
 }
 
+// TypeString returns the string representation of the token type
+// It is used to determine the type of the token, such as TYPE, INTEGER, FLOAT, etc.
 func (t *Token) String() string {
 	return fmt.Sprintf("(%v, %s)", t.Type, t.Val)
 }
 
+// AllocSize returns the size of the token should be allocated in memory
+// It is used to determine the size of the token in memory, such as int, float, string, etc.
 func (t *Token) AllocSize() int {
 	if t.Type != TYPE {
 		return -1

@@ -44,7 +44,7 @@ func (t LRTable) Insert(state *State, grammar *Grammar) {
 			}
 		}
 		if err != nil {
-			//fmt.Printf("when inserting : %v\n", err)
+			// fmt.Printf("when inserting : %v\n", err)
 		}
 	}
 }
@@ -126,6 +126,7 @@ const (
 	SymbolTableItemTypeVariable SymbolTableItemType = "variable"
 	SymbolTableItemTypeArray    SymbolTableItemType = "array"
 	SymbolTableItemTypeConstant SymbolTableItemType = "constant"
+	SymbolTableItemTypeUnknown  SymbolTableItemType = "unknown"
 )
 
 type Scope struct {
@@ -150,6 +151,8 @@ const (
 	constantAddr = 0x20000000
 )
 
+// NewSymbolTable creates a new symbol table with the specified enter and exit functions.
+// The enter function is called when entering a new scope, and the exit function is called when exiting a scope.
 func NewSymbolTable(enter, exit func(*Scope) error) *SymbolTable {
 	return &SymbolTable{
 		LegacyScopes:  make([]*Scope, 0),
@@ -161,6 +164,7 @@ func NewSymbolTable(enter, exit func(*Scope) error) *SymbolTable {
 	}
 }
 
+// EnterScope creates a new scope and sets it as the current scope in the symbol table.
 func (st *SymbolTable) EnterScope() error {
 	if st.CurrentScope == nil {
 		st.CurrentScope = &Scope{
@@ -202,6 +206,8 @@ func (st *SymbolTable) ExitScope() error {
 	return nil
 }
 
+// Register adds a new item to the current scope in the symbol table.
+// It checks for conflicts and ensures that the item is valid before adding it.
 func (st *SymbolTable) Register(item *SymbolTableItem) error {
 	if st.CurrentScope == nil {
 		return fmt.Errorf("no scope to register item")
@@ -217,18 +223,22 @@ func (st *SymbolTable) Register(item *SymbolTableItem) error {
 	st.CurrentScope.Items[item.Variable] = item
 	switch item.Type {
 	case SymbolTableItemTypeVariable:
+		item.Address = st.addrCounter
 		st.addrCounter += item.VariableSize
-		item.Address = st.addrCounter
 	case SymbolTableItemTypeArray:
-		st.addrCounter += item.VariableSize * item.ArraySize
 		item.Address = st.addrCounter
+		st.addrCounter += item.VariableSize * item.ArraySize
 	case SymbolTableItemTypeConstant:
-		st.constantAddr += item.VariableSize * item.ArraySize
 		item.Address = st.constantAddr
+		st.constantAddr += item.VariableSize * item.ArraySize
 	}
 	return nil
 }
 
+// Lookup searches for an item in the symbol table.
+// It checks the current scope and its parent scopes until it finds the item or returns an error.
+// It returns the item, a boolean indicating if it was found in the current scope, and an error if any.
+// If the item is not found, it returns an error indicating that the item was not found in any scope.
 func (st *SymbolTable) Lookup(variable string) (item *SymbolTableItem, findInCurrentScope bool, err error) {
 	if st.CurrentScope == nil {
 		return nil, false, fmt.Errorf("no scope to lookup item")

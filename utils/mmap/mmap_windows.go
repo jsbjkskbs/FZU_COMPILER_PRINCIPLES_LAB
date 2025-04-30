@@ -64,7 +64,6 @@ func Open(filename string) (*_MemoryMap, error) {
 		}, nil
 	} else if s < 0 {
 		return nil, fmt.Errorf("file size is negative: %d", s)
-
 	}
 
 	if s != int64(int32(s)) {
