@@ -498,6 +498,13 @@ The supported number formats include:
 - Integers: `123`, `0x123`, `0X123`, `0xABCDEF`, `0XABCDEF`
 - Floating-point numbers: `123.456`, `0.123456`, `000.123456`
 
+> Note: Negative numbers such as `-1`, `-1.23`, `-0x123`, `-0xABCDEF`, `-0X123`, and `-0XABCDEF` do not need to be considered.
+>  - In lexical analysis, considering numbers with a leading negative sign increases the complexity of the lexer, as it requires handling the special case of the negative sign.
+>  - In syntax analysis, the negative sign can be treated as a separate operator, which can be handled during the syntax analysis phase rather than during the lexical analysis phase.
+>    - For example, numbers can be defined as `a | b`, where `a` is a number and `b` is a negative sign followed by a number.
+>    - By performing lookahead to identify symbols or similar markers, it can be determined whether `-` is a negative sign or a subtraction operator.
+>  - This approach simplifies the design of the lexer, allowing it to focus on recognizing basic lexical tokens rather than handling complex syntactic rules.
+
 ```go
 func (l *Lexer) ReadNumber(r rune) (Token, error) {
 	s := string(r)
