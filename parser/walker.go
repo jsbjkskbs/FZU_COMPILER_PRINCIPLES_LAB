@@ -2,8 +2,8 @@ package parser
 
 import (
 	"fmt"
+	"strings"
 
-	"app/lexer"
 	. "app/utils/collections"
 )
 
@@ -27,17 +27,12 @@ type Walker struct {
 }
 
 type Environment struct {
-	CurrentType      SymbolTableItemType
-	CurrentDataType  lexer.TokenSpecificType
-	CurrentDataSize  int
-	CurrentArraySize int
-	CurrentVariable  string
+	onBooleanExpr bool
 
-	CurrentUnary any
-
-	LabelCounter    int
 	BreakLabelStack Stack[int]
-	ItemStack       Stack[any]
+	LoopLabelStack  Stack[int]
+	LabelStack      Stack[int]
+	EndIfStmtStack  Stack[int]
 }
 
 // NewEnvironment creates a new Environment instance and initializes it.
@@ -57,13 +52,6 @@ func NewEnvironment() *Environment {
 // the current context. This ensures that the parsing process adheres strictly
 // to the grammar's rules and structure. So, there's no need to reset the environment.
 func (env *Environment) Reset() {
-	env.CurrentType = SymbolTableItemTypeUnknown
-	env.CurrentDataType = 0xff
-	env.CurrentDataSize = -1
-	env.CurrentArraySize = -1
-	env.CurrentVariable = ""
-	env.CurrentUnary = nil
-	env.LabelCounter = 0
 	env.BreakLabelStack = Stack[int]{}
 }
 
@@ -78,7 +66,7 @@ func (p *Parser) NewWalker() *Walker {
 	states := Stack[int]{}
 	states.Push(0)
 	symbols := Stack[Symbol]{}
-	return &Walker{
+	w := &Walker{
 		Table: LRTable{
 			ActionTable: p.Table.ActionTable.Copy(),
 			GotoTable:   p.Table.GotoTable.Copy(),
@@ -89,6 +77,8 @@ func (p *Parser) NewWalker() *Walker {
 		SymbolTable: NewSymbolTable(nil, nil),
 		Environment: NewEnvironment(),
 	}
+	w.Emit("jmp", "L0")
+	return w
 }
 
 // Next processes the next symbol in the parsing process. It takes a symbol as input
@@ -158,20 +148,53 @@ func (w *Walker) Reset() {
 }
 
 func (w *Walker) NewLabel() int {
-	w.Environment.LabelCounter++
-	return w.Environment.LabelCounter - 1
+	w.ThreeAddress = append(w.ThreeAddress, fmt.Sprintf("L%-8d %8s", len(w.ThreeAddress), "xxx"))
+	w.Environment.LabelStack.Push(len(w.ThreeAddress) - 1)
+	return len(w.ThreeAddress) - 1
 }
 
-func (w *Walker) Emit(dist string, op string, args ...any) {
-	if op == "" {
-		w.ThreeAddress = append(w.ThreeAddress, fmt.Sprintf("%s = %s", dist, args[0]))
-	} else {
-		w.ThreeAddress = append(w.ThreeAddress, fmt.Sprintf("%s = %s %s %s", dist, args[0], op, args[1]))
+func (w *Walker) Emit(op string, dist string, args ...any) {
+	line := fmt.Sprintf("L%-8d %8s %16s", len(w.ThreeAddress), op, dist)
+	for _, arg := range args {
+		line += fmt.Sprintf(" %16s", arg)
 	}
+	w.ThreeAddress = append(w.ThreeAddress, line)
 }
 
-func (w *Walker) EmitLabel(label int) {
-	w.ThreeAddress = append(w.ThreeAddress, fmt.Sprintf("L%d:", label))
+func (w *Walker) NewGotoLabel() int {
+	w.ThreeAddress = append(w.ThreeAddress, fmt.Sprintf("L%-8d %8s", len(w.ThreeAddress), "yyy"))
+	w.Environment.EndIfStmtStack.Push(len(w.ThreeAddress) - 1)
+	return len(w.ThreeAddress) - 1
+}
+
+func (w *Walker) EmitGoto(label int, distLabel int) {
+	line := fmt.Sprintf("L%-8d %8s %16s", label, "jmp", fmt.Sprintf("L%d", distLabel))
+	w.ThreeAddress[label] = line
+}
+
+func (w *Walker) EmitLabel(label int, dist string, op string, args ...any) {
+	line := fmt.Sprintf("L%-8d %8s %16s", label, op, dist)
+	for _, arg := range args {
+		line += fmt.Sprintf(" %16s", arg)
+	}
+	w.ThreeAddress[label] = line
+}
+
+func (w *Walker) AdjustJMP(label int, jmp int) error {
+	line := w.ThreeAddress[label]
+	parts := strings.Fields(line)
+	if len(parts) < 3 {
+		return fmt.Errorf("invalid line format: %s", line)
+	}
+	if parts[1] != "jmp" && parts[1] != "jz" && parts[1] != "jnz" {
+		return fmt.Errorf("invalid jump instruction: %s", parts[1])
+	}
+	w.ThreeAddress[label] = fmt.Sprintf("L%-8d %8s %16s", label, parts[1], fmt.Sprintf("L%d", jmp))
+	return nil
+}
+
+func (w *Walker) GetCurrentLabelCount() int {
+	return len(w.ThreeAddress)
 }
 
 func (w *Walker) GetBreakLabel() int {

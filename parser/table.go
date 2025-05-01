@@ -116,8 +116,6 @@ type SymbolTableItem struct {
 
 	VariableSize int
 	ArraySize    int
-
-	Line, Pos int64
 }
 
 type SymbolTableItemType string
@@ -142,13 +140,11 @@ type SymbolTable struct {
 	EnterFunction func(*Scope) error
 	ExitFunction  func(*Scope) error
 
-	addrCounter  int
-	constantAddr int
+	addrCounter int
 }
 
 const (
-	initialAddr  = 0x10000000
-	constantAddr = 0x20000000
+	initialAddr = 0x10000000
 )
 
 // NewSymbolTable creates a new symbol table with the specified enter and exit functions.
@@ -160,7 +156,6 @@ func NewSymbolTable(enter, exit func(*Scope) error) *SymbolTable {
 		EnterFunction: enter,
 		ExitFunction:  exit,
 		addrCounter:   initialAddr,
-		constantAddr:  constantAddr,
 	}
 }
 
@@ -208,17 +203,17 @@ func (st *SymbolTable) ExitScope() error {
 
 // Register adds a new item to the current scope in the symbol table.
 // It checks for conflicts and ensures that the item is valid before adding it.
-func (st *SymbolTable) Register(item *SymbolTableItem) error {
+func (st *SymbolTable) Register(item *SymbolTableItem) (int, error) {
 	if st.CurrentScope == nil {
-		return fmt.Errorf("no scope to register item")
+		return -1, fmt.Errorf("no scope to register item")
 	}
 
 	if _, exists := st.CurrentScope.Items[item.Variable]; exists {
-		return fmt.Errorf("item %s already exists in scope", item.Variable)
+		return -1, fmt.Errorf("item %s already exists in scope", item.Variable)
 	}
 
 	if item.VariableSize <= 0 {
-		return fmt.Errorf("invalid variable size for item %s", item.Variable)
+		return -1, fmt.Errorf("invalid variable size for item %s", item.Variable)
 	}
 	st.CurrentScope.Items[item.Variable] = item
 	switch item.Type {
@@ -235,7 +230,7 @@ func (st *SymbolTable) Register(item *SymbolTableItem) error {
 			st.addrCounter++
 		}
 	}
-	return nil
+	return item.Address, nil
 }
 
 // Lookup searches for an item in the symbol table.

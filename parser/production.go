@@ -1,9 +1,11 @@
 package parser
 
 import (
+	"fmt"
 	"slices"
 
 	. "app/utils/collections"
+	"app/utils/log"
 )
 
 type Production struct {
@@ -26,6 +28,7 @@ func (p *Production) Equals(other Production) bool {
 // HandleRule executes the rule associated with the production if it is not nil.
 func (p *Production) HandleRule(walker *Walker) error {
 	if p.Rule == nil {
+		fmt.Println(log.Sprintf(log.Argument{FrontColor: log.Yellow, Highlight: true, Format: "Warning: rule is nil for production %s -> %s", Args: []any{p.Head, p.Body}}))
 		return nil
 	}
 	return p.Rule(walker)
@@ -234,13 +237,18 @@ var Productions = []Production{
 	// bool → bool || join | join
 	{
 		Head: "bool",
-		Body: []Symbol{"bool", "||", "join"},
+		Body: []Symbol{"bool'"},
 		Rule: GenRules.Bool,
 	},
 	{
-		Head: "bool",
+		Head: "bool'",
+		Body: []Symbol{"bool'", "||", "join"},
+		Rule: GenRules.BoolPrime,
+	},
+	{
+		Head: "bool'",
 		Body: []Symbol{"join"},
-		Rule: GenRules.BoolJoin,
+		Rule: GenRules.BoolPrimeJoin,
 	},
 	// join → join && equality | equality
 	{
