@@ -245,15 +245,14 @@ func (st *SymbolTable) ArrayAddress(variable string, offset int) (int, int, erro
 	if st.CurrentScope == nil {
 		return -1, -1, fmt.Errorf("no scope to lookup item")
 	}
-
-	if item, exists := st.CurrentScope.Items[variable]; exists {
-		if item.Type != SymbolTableItemTypeArray {
-			return -1, -1, fmt.Errorf("item %s is not an array", variable)
-		}
-		return item.Address + (item.ArrayElementSize * offset / 4), item.ArraySize, nil
+	item, _, err := st.Lookup(variable)
+	if err != nil {
+		return -1, -1, err
 	}
-
-	return -1, -1, fmt.Errorf("item %s not found in current scope", variable)
+	if item.Type != SymbolTableItemTypeArray {
+		return -1, -1, fmt.Errorf("item %s is not an array", variable)
+	}
+	return item.Address + (item.ArrayElementSize * offset / 4), item.ArraySize, nil
 }
 
 // Lookup searches for an item in the symbol table.
