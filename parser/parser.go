@@ -56,15 +56,21 @@ func (p *Parser) Parse(l *lexer.Lexer, logger func(string)) {
 		walker.Tokens.Push(p.Token2ASTNode(&token))
 	}
 
-	// for _, scope := range walker.SymbolTable.LegacyScopes {
-	// 	fmt.Printf("Scope: %v\n", scope.ID)
-	// 	for _, item := range scope.Items {
-	// 		fmt.Printf("Variable: %s, Type: %s, Address: %#x\n", item.Variable, item.UnderlyingType, item.Address)
-	// 	}
-	// }
-
+	logger("\n\nThree Address Code:\n")
 	for _, line := range walker.ThreeAddress {
-		fmt.Println(line)
+		// fmt.Println(line)
+		logger(fmt.Sprintln(line))
+	}
+
+	for _, scope := range walker.SymbolTable.LegacyScopes[1:] {
+		logger("-------------------------------------\n")
+		logger(fmt.Sprintf("Scope: %v\n", scope.ID))
+		for _, item := range scope.Items {
+			logger(fmt.Sprintf("Variable: %s, Type: %s, Address: %#x\n", item.Variable, item.UnderlyingType, item.Address))
+			if item.Type == SymbolTableItemTypeArray {
+				logger(fmt.Sprintf("Array Size: %d, Element Size: %d\n", item.ArraySize, item.ArrayElementSize))
+			}
+		}
 	}
 }
 

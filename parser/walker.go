@@ -29,7 +29,7 @@ type Walker struct {
 type Environment struct {
 	onBooleanExpr bool
 
-	BreakLabelStack Stack[int]
+	BreakLabelStack Stack[*[]int]
 	LoopLabelStack  Stack[int]
 	LabelStack      Stack[int]
 	EndIfStmtStack  Stack[int]
@@ -52,7 +52,6 @@ func NewEnvironment() *Environment {
 // the current context. This ensures that the parsing process adheres strictly
 // to the grammar's rules and structure. So, there's no need to reset the environment.
 func (env *Environment) Reset() {
-	env.BreakLabelStack = Stack[int]{}
 }
 
 // NewWalker creates a new Walker instance and initializes it with the
@@ -77,7 +76,7 @@ func (p *Parser) NewWalker() *Walker {
 		SymbolTable: NewSymbolTable(nil, nil),
 		Environment: NewEnvironment(),
 	}
-	w.Emit("jmp", "L0")
+	w.Emit("jmp", "L1")
 	return w
 }
 
@@ -197,22 +196,29 @@ func (w *Walker) GetCurrentLabelCount() int {
 	return len(w.ThreeAddress)
 }
 
-func (w *Walker) GetBreakLabel() int {
-	if w.Environment.BreakLabelStack.IsEmpty() {
-		return -1
-	}
-	t, _ := w.Environment.BreakLabelStack.Peek()
-	return t
-}
-
 func (w *Walker) EnterLoop() {
-	label := w.NewLabel()
-	w.Environment.BreakLabelStack.Push(label)
+	a := make([]int, 0)
+	w.Environment.BreakLabelStack.Push(&a)
 }
 
-func (w *Walker) ExitLoop() {
+func (w *Walker) AddBreakLabel() {
 	if w.Environment.BreakLabelStack.IsEmpty() {
+		println("AddBreakLabel: BreakLabelStack is empty")
 		return
 	}
-	w.Environment.BreakLabelStack.Pop()
+	w.ThreeAddress = append(w.ThreeAddress, fmt.Sprintf("L%-8d %8s", len(w.ThreeAddress), "nop"))
+	t, _ := w.Environment.BreakLabelStack.Pop()
+	*t = append(*t, len(w.ThreeAddress)-1)
+	w.Environment.BreakLabelStack.Push(t)
+}
+
+func (w *Walker) ExitLoop(exit int) {
+	if w.Environment.BreakLabelStack.IsEmpty() {
+		println("ExitLoop: BreakLabelStack is empty")
+		return
+	}
+	l, _ := w.Environment.BreakLabelStack.Pop()
+	for _, label := range *l {
+		w.EmitLabel(label, fmt.Sprintf("L%d", exit), "jmp")
+	}
 }

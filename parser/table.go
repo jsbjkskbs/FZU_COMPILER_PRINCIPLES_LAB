@@ -115,7 +115,9 @@ type SymbolTableItem struct {
 	UnderlyingType string
 
 	VariableSize int
-	ArraySize    int
+
+	ArraySize        int
+	ArrayElementSize int
 }
 
 type SymbolTableItemType string
@@ -224,13 +226,34 @@ func (st *SymbolTable) Register(item *SymbolTableItem) (int, error) {
 			st.addrCounter++
 		}
 	case SymbolTableItemTypeArray:
+		if item.ArraySize <= 0 {
+			return -1, fmt.Errorf("invalid array size for item %s", item.Variable)
+		}
+		if item.ArrayElementSize <= 0 {
+			return -1, fmt.Errorf("invalid array element size for item %s", item.Variable)
+		}
 		item.Address = st.addrCounter
-		st.addrCounter += item.VariableSize * item.ArraySize / 4
-		if item.VariableSize*item.ArraySize/4*4 != item.VariableSize*item.ArraySize {
+		st.addrCounter += item.ArrayElementSize * item.ArraySize / 4
+		if item.ArrayElementSize*item.ArraySize/4*4 != item.ArrayElementSize*item.ArraySize {
 			st.addrCounter++
 		}
 	}
 	return item.Address, nil
+}
+
+func (st *SymbolTable) ArrayAddress(variable string, offset int) (int, int, error) {
+	if st.CurrentScope == nil {
+		return -1, -1, fmt.Errorf("no scope to lookup item")
+	}
+
+	if item, exists := st.CurrentScope.Items[variable]; exists {
+		if item.Type != SymbolTableItemTypeArray {
+			return -1, -1, fmt.Errorf("item %s is not an array", variable)
+		}
+		return item.Address + (item.ArrayElementSize * offset / 4), item.ArraySize, nil
+	}
+
+	return -1, -1, fmt.Errorf("item %s not found in current scope", variable)
 }
 
 // Lookup searches for an item in the symbol table.

@@ -108,8 +108,12 @@ func Program(w *Walker) error {
 		Payload:  nil,
 	})
 	w.Emit("exit", "0")
-	// n, _ := w.Tokens.Pop()
+	n, _ := w.Tokens.Pop()
+	w.ast = &AbstractSyntaxTree{
+		Root: n,
+	}
 	// fmt.Println(n.TreeString(0))
+	// fmt.Println(w.Environment.BreakLabelStack)
 	return nil
 }
 
@@ -181,7 +185,7 @@ func Decls(w *Walker) error {
 
 // decls → ε
 func DeclsEpsilon(w *Walker) error {
-	w.Environment.LoopLabelStack.Push(w.GetCurrentLabelCount())
+	declsEpsilonDoWhile(w)
 	w.Tokens.Push(&ASTNode{
 		raw:      "",
 		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "decls-epsilon"},
@@ -192,29 +196,79 @@ func DeclsEpsilon(w *Walker) error {
 	return nil
 }
 
+func declsEpsilonDoWhile(w *Walker) {
+	do, _ := w.Tokens.PeekAtK(1)
+	if do == nil {
+		return
+	}
+	if do.Token.SpecificType() == lexer.ReservedWordDo {
+		w.Environment.LoopLabelStack.Push(w.GetCurrentLabelCount())
+		w.EnterLoop()
+		return
+	}
+}
+
 // decl → type id;
 func Decl(w *Walker) error {
 	children := w.Tokens.PopTopN(3)
-	t, id := children[0].Token, children[1].Token
-	item := &SymbolTableItem{
-		Variable:       id.Val,
-		VariableSize:   t.AllocSize(),
-		Type:           SymbolTableItemTypeVariable,
-		UnderlyingType: t.SpecificType().ToString(),
+	t, id := children[0], children[1]
+	switch children[0].Type {
+	case "type-basic":
+		declBasic(w, t, id)
+	case "type-array":
+		declArray(w, t, id)
+	default:
+		fmt.Println("Error: Unknown type in decl")
 	}
-	addr, err := w.SymbolTable.Register(item)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-	}
-	w.Emit("alloc", fmt.Sprintf("$(%#x)", addr), strconv.Itoa(item.VariableSize), getInitialValue(t))
 	w.Tokens.Push(&ASTNode{
 		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: id.Val},
+		Token:    &lexer.Token{Type: lexer.EXTRA, Val: id.Token.Val},
 		Children: children,
 		Type:     "decl",
 		Payload:  "!<decl>",
 	})
 	return nil
+}
+
+func declBasic(w *Walker, basic *ASTNode, id *ASTNode) {
+	item := &SymbolTableItem{
+		Variable:       id.Token.Val,
+		VariableSize:   basic.Token.AllocSize(),
+		Type:           SymbolTableItemTypeVariable,
+		UnderlyingType: basic.Token.SpecificType().ToString(),
+	}
+	addr, err := w.SymbolTable.Register(item)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+	w.Emit("alloc", fmt.Sprintf("$(%#x)", addr), strconv.Itoa(item.VariableSize), getInitialValue(basic.Token))
+}
+
+func declArray(w *Walker, array *ASTNode, id *ASTNode) {
+	basic, num := array.Children[0], array.Children[2]
+	if num.Token.Type != lexer.INTEGER {
+		fmt.Println("Error: Array size must be an integer")
+		return
+	}
+	size, err := strconv.Atoi(num.Token.Val)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+	item := &SymbolTableItem{
+		Variable:         id.Token.Val,
+		VariableSize:     4, // size of pointer
+		ArraySize:        size,
+		ArrayElementSize: basic.Token.AllocSize(),
+		Type:             SymbolTableItemTypeArray,
+		UnderlyingType:   fmt.Sprintf("!ptr<%s>", basic.Token.SpecificType().ToString()),
+	}
+	addr, err := w.SymbolTable.Register(item)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+	}
+	w.Emit("alloc", fmt.Sprintf("$(%#x)", addr), strconv.Itoa(item.ArrayElementSize*item.ArraySize), getInitialValue(basic.Token))
 }
 
 // type → type [ num ]
@@ -338,12 +392,7 @@ func MatchedStmtAssign(w *Walker) error {
 	children := w.Tokens.PopTopN(4)
 	dist := children[0].Token.Val
 	src := children[2].Token.Val
-	i, _, err := w.SymbolTable.Lookup(dist)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-	}
-	w.Emit("mov", fmt.Sprintf("$(%#x)", i.Address), src)
-
+	w.Emit("mov", dist, src)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
@@ -423,7 +472,9 @@ func MatchedStmtWhile(w *Walker) error {
 	n := w.Environment.LabelStack.PopTopN(2)
 	m := w.Environment.EndIfStmtStack.PopTopN(1)
 	w.EmitLabel(n[1], fmt.Sprintf("L%d", m[0]+1), "jmp")
-	w.EmitGoto(m[0], n[0])
+	w.EmitGoto(m[0], n[0]-1)
+
+	w.ExitLoop(m[0] + 1)
 	return nil
 }
 
@@ -441,6 +492,8 @@ func MatchedStmtDoWhile(w *Walker) error {
 	m := w.Environment.LoopLabelStack.PopTopN(1)
 	w.AdjustJMP(n[0], m[0])
 	w.EmitLabel(n[1], fmt.Sprintf("L%d", n[1]+1), "jmp")
+
+	w.ExitLoop(n[1] + 1)
 	return nil
 }
 
@@ -454,6 +507,7 @@ func MatchedStmtBreak(w *Walker) error {
 		Type:     "stmt-break",
 		Payload:  "!<break>",
 	})
+	w.AddBreakLabel()
 	return nil
 }
 
@@ -476,9 +530,6 @@ func matchedStmtBlockIfWhileElse(w *Walker) {
 	if doelse == nil {
 		return
 	}
-	if doelse.Token.SpecificType() != lexer.ReservedWordDo {
-		w.Environment.LoopLabelStack.PopTopN(1)
-	}
 	if doelse.Token.SpecificType() == lexer.ReservedWordElse {
 		w.NewGotoLabel()
 		return
@@ -496,11 +547,27 @@ func matchedStmtBlockIfWhileElse(w *Walker) {
 // loc → loc [ num ]
 func LocArray(w *Walker) error {
 	children := w.Tokens.PopTopN(4)
+	loc, num := children[0], children[2]
+	addrStr := "$(nullptr)"
+	id := loc.Children[0].Token.Val
+	size, err := strconv.Atoi(num.Token.Val)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+	}
+	addr, arrSize, err := w.SymbolTable.ArrayAddress(id, size)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+	} else {
+		addrStr = fmt.Sprintf("$(%#x)", addr)
+	}
+	if size > arrSize {
+		fmt.Printf("Error: Array index out of bounds for %s[%d]\n", id, size)
+	}
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
 			Type: lexer.EXTRA,
-			Val:  fmt.Sprintf("%s[%s]", children[0].raw, children[2].raw),
+			Val:  addrStr,
 		},
 		Children: children,
 		Type:     "loc-array",
@@ -512,9 +579,16 @@ func LocArray(w *Walker) error {
 // loc → id
 func LocId(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
+	addr := "$(nullptr)"
+	i, _, err := w.SymbolTable.Lookup(children[0].Token.Val)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return nil
+	}
+	addr = fmt.Sprintf("$(%#x)", i.Address)
 	w.Tokens.Push(&ASTNode{
 		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
+		Token:    &lexer.Token{Type: lexer.EXTRA, Val: addr},
 		Children: children,
 		Type:     "loc-id",
 		Payload:  "!dist:!ptr(size=4)",
@@ -560,6 +634,12 @@ func boolLookbackIfWhile(w *Walker) {
 		w.NewLabel()
 		top, _ := w.Tokens.Peek()
 		w.EmitLabel(jnz, fmt.Sprintf("L%d", jnz+2), "jnz", top.Token.Val)
+		if ifwhile.Token.SpecificType() == lexer.ReservedWordWhile {
+			do, _ := w.Tokens.PeekAtK(4)
+			if do == nil || do.Token.SpecificType() != lexer.ReservedWordDo {
+				w.EnterLoop()
+			}
+		}
 	}
 }
 
