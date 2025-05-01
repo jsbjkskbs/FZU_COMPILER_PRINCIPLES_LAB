@@ -19,6 +19,9 @@ type ASTNode struct {
 
 	Type    Symbol // Type of the node (e.g., statement, expression, declaration, etc.)
 	Payload any
+
+	_genCodeStartLine int
+	_genCodeEndLine   int
 }
 
 type ASTNodeType int

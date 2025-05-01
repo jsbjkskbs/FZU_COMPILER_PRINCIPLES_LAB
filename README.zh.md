@@ -40,3 +40,4 @@
 
 1. [词法分析器](/docs/lexer.zh.md)
 2. [语法分析器](/docs/parser.zh.md)
+3. [中间代码生成](/docs/intermediate-code-generation.zh.md)

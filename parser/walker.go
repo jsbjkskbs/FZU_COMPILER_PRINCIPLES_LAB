@@ -27,12 +27,12 @@ type Walker struct {
 }
 
 type Environment struct {
-	onBooleanExpr bool
-
 	BreakLabelStack Stack[*[]int]
 	LoopLabelStack  Stack[int]
 	LabelStack      Stack[int]
 	EndIfStmtStack  Stack[int]
+
+	LoopBooleanStartLineStack Stack[int]
 }
 
 // NewEnvironment creates a new Environment instance and initializes it.
@@ -152,12 +152,13 @@ func (w *Walker) NewLabel() int {
 	return len(w.ThreeAddress) - 1
 }
 
-func (w *Walker) Emit(op string, dist string, args ...any) {
+func (w *Walker) Emit(op string, dist string, args ...any) int {
 	line := fmt.Sprintf("L%-8d %8s %16s", len(w.ThreeAddress), op, dist)
 	for _, arg := range args {
 		line += fmt.Sprintf(" %16s", arg)
 	}
 	w.ThreeAddress = append(w.ThreeAddress, line)
+	return len(w.ThreeAddress) - 1
 }
 
 func (w *Walker) NewGotoLabel() int {
@@ -201,15 +202,16 @@ func (w *Walker) EnterLoop() {
 	w.Environment.BreakLabelStack.Push(&a)
 }
 
-func (w *Walker) AddBreakLabel() {
+func (w *Walker) AddBreakLabel() int {
 	if w.Environment.BreakLabelStack.IsEmpty() {
 		println("AddBreakLabel: BreakLabelStack is empty")
-		return
+		return -1
 	}
 	w.ThreeAddress = append(w.ThreeAddress, fmt.Sprintf("L%-8d %8s", len(w.ThreeAddress), "nop"))
 	t, _ := w.Environment.BreakLabelStack.Pop()
 	*t = append(*t, len(w.ThreeAddress)-1)
 	w.Environment.BreakLabelStack.Push(t)
+	return len(w.ThreeAddress) - 1
 }
 
 func (w *Walker) ExitLoop(exit int) {

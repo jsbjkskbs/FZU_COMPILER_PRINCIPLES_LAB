@@ -101,11 +101,13 @@ func debugPrintWhenRuleTriggered(w *Walker) error {
 func Program(w *Walker) error {
 	children := w.Tokens.PopTopN(w.Tokens.Size())
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "program"},
-		Children: children,
-		Type:     "program",
-		Payload:  nil,
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "program"},
+		Children:          children,
+		Type:              "program",
+		Payload:           nil,
+		_genCodeStartLine: children[0]._genCodeStartLine,
+		_genCodeEndLine:   children[0]._genCodeEndLine + 1,
 	})
 	w.Emit("exit", "0")
 	n, _ := w.Tokens.Pop()
@@ -121,11 +123,13 @@ func Program(w *Walker) error {
 func BlockDeclsStmts(w *Walker) error {
 	children := w.Tokens.PopTopN(4)
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: fmt.Sprintf("{%s %s}", children[1].raw, children[2].raw)},
-		Children: children,
-		Type:     "block-decls-stmts",
-		Payload:  "!<block>",
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: fmt.Sprintf("{%s %s}", children[1].raw, children[2].raw)},
+		Children:          children,
+		Type:              "block-decls-stmts",
+		Payload:           "!<block>",
+		_genCodeStartLine: min(children[1]._genCodeStartLine, children[2]._genCodeStartLine),
+		_genCodeEndLine:   max(children[1]._genCodeEndLine, children[2]._genCodeEndLine),
 	})
 	return nil
 }
@@ -134,11 +138,13 @@ func BlockDeclsStmts(w *Walker) error {
 func BlockDecls(w *Walker) error {
 	children := w.Tokens.PopTopN(3)
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: fmt.Sprintf("{%s}", children[1].raw)},
-		Children: children,
-		Type:     "block-decls",
-		Payload:  "!<block>",
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: fmt.Sprintf("{%s}", children[1].raw)},
+		Children:          children,
+		Type:              "block-decls",
+		Payload:           "!<block>",
+		_genCodeStartLine: children[1]._genCodeStartLine,
+		_genCodeEndLine:   children[1]._genCodeEndLine,
 	})
 	return nil
 }
@@ -147,11 +153,13 @@ func BlockDecls(w *Walker) error {
 func BlockStmts(w *Walker) error {
 	children := w.Tokens.PopTopN(3)
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: fmt.Sprintf("{%s}", children[1].raw)},
-		Children: children,
-		Type:     "block-stmts",
-		Payload:  "!<block>",
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: fmt.Sprintf("{%s}", children[1].raw)},
+		Children:          children,
+		Type:              "block-stmts",
+		Payload:           "!<block>",
+		_genCodeStartLine: children[1]._genCodeStartLine,
+		_genCodeEndLine:   children[1]._genCodeEndLine,
 	})
 	return nil
 }
@@ -159,14 +167,16 @@ func BlockStmts(w *Walker) error {
 // block → { }
 func BlockEpsilon(w *Walker) error {
 	children := w.Tokens.PopTopN(2)
+	l := w.Emit("nop", "")
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "{}"},
-		Children: children,
-		Type:     "block-epsilon",
-		Payload:  "!<block>",
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "{}"},
+		Children:          children,
+		Type:              "block-epsilon",
+		Payload:           "!<block>",
+		_genCodeStartLine: l,
+		_genCodeEndLine:   l,
 	})
-	w.Emit("nop", "")
 	return nil
 }
 
@@ -174,11 +184,13 @@ func BlockEpsilon(w *Walker) error {
 func Decls(w *Walker) error {
 	children := w.Tokens.PopTopN(2)
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "decls"},
-		Children: children,
-		Type:     "decls",
-		Payload:  "!<decl>",
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "decls"},
+		Children:          children,
+		Type:              "decls",
+		Payload:           "!<decl>",
+		_genCodeStartLine: min(children[0]._genCodeStartLine, children[1]._genCodeStartLine),
+		_genCodeEndLine:   max(children[0]._genCodeEndLine, children[1]._genCodeEndLine),
 	})
 	return nil
 }
@@ -187,11 +199,13 @@ func Decls(w *Walker) error {
 func DeclsEpsilon(w *Walker) error {
 	declsEpsilonDoWhile(w)
 	w.Tokens.Push(&ASTNode{
-		raw:      "",
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "decls-epsilon"},
-		Children: nil,
-		Type:     "decls-epsilon",
-		Payload:  "!<decl>",
+		raw:               "",
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "decls-epsilon"},
+		Children:          nil,
+		Type:              "decls-epsilon",
+		Payload:           "!<decl>",
+		_genCodeStartLine: MAX_START_LINE,
+		_genCodeEndLine:   MIN_START_LINE,
 	})
 	return nil
 }
@@ -212,25 +226,28 @@ func declsEpsilonDoWhile(w *Walker) {
 func Decl(w *Walker) error {
 	children := w.Tokens.PopTopN(3)
 	t, id := children[0], children[1]
+	l := -1
 	switch children[0].Type {
 	case "type-basic":
-		declBasic(w, t, id)
+		l = declBasic(w, t, id)
 	case "type-array":
-		declArray(w, t, id)
+		l = declArray(w, t, id)
 	default:
 		fmt.Println("Error: Unknown type in decl")
 	}
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: id.Token.Val},
-		Children: children,
-		Type:     "decl",
-		Payload:  "!<decl>",
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: id.Token.Val},
+		Children:          children,
+		Type:              "decl",
+		Payload:           "!<decl>",
+		_genCodeStartLine: min(l, id._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
 	return nil
 }
 
-func declBasic(w *Walker, basic *ASTNode, id *ASTNode) {
+func declBasic(w *Walker, basic *ASTNode, id *ASTNode) int {
 	item := &SymbolTableItem{
 		Variable:       id.Token.Val,
 		VariableSize:   basic.Token.AllocSize(),
@@ -240,21 +257,21 @@ func declBasic(w *Walker, basic *ASTNode, id *ASTNode) {
 	addr, err := w.SymbolTable.Register(item)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
-		return
+		return -1
 	}
-	w.Emit("alloc", fmt.Sprintf("$(%#x)", addr), strconv.Itoa(item.VariableSize), getInitialValue(basic.Token))
+	return w.Emit("alloc", fmt.Sprintf("$(%#x)", addr), strconv.Itoa(item.VariableSize), getInitialValue(basic.Token))
 }
 
-func declArray(w *Walker, array *ASTNode, id *ASTNode) {
+func declArray(w *Walker, array *ASTNode, id *ASTNode) int {
 	basic, num := array.Children[0], array.Children[2]
 	if num.Token.Type != lexer.INTEGER {
 		fmt.Println("Error: Array size must be an integer")
-		return
+		return -1
 	}
 	size, err := strconv.Atoi(num.Token.Val)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
-		return
+		return -1
 	}
 	item := &SymbolTableItem{
 		Variable:         id.Token.Val,
@@ -268,18 +285,20 @@ func declArray(w *Walker, array *ASTNode, id *ASTNode) {
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	}
-	w.Emit("alloc", fmt.Sprintf("$(%#x)", addr), strconv.Itoa(item.ArrayElementSize*item.ArraySize), getInitialValue(basic.Token))
+	return w.Emit("alloc", fmt.Sprintf("$(%#x)", addr), strconv.Itoa(item.ArrayElementSize*item.ArraySize), getInitialValue(basic.Token))
 }
 
 // type → type [ num ]
 func TypeArray(w *Walker) error {
 	children := w.Tokens.PopTopN(4)
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: fmt.Sprintf("%s[%s]", children[0].raw, children[2].raw)},
-		Children: children,
-		Type:     "type-array",
-		Payload:  "!<array>",
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: fmt.Sprintf("%s[%s]", children[0].raw, children[2].raw)},
+		Children:          children,
+		Type:              "type-array",
+		Payload:           "!<array>",
+		_genCodeStartLine: min(children[0]._genCodeStartLine, children[2]._genCodeStartLine),
+		_genCodeEndLine:   max(children[0]._genCodeEndLine, children[2]._genCodeEndLine),
 	})
 	return nil
 }
@@ -288,11 +307,13 @@ func TypeArray(w *Walker) error {
 func TypeBasic(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    children[0].Token,
-		Children: children,
-		Type:     "type-basic",
-		Payload:  "!<basic>",
+		raw:               children[0].raw,
+		Token:             children[0].Token,
+		Children:          children,
+		Type:              "type-basic",
+		Payload:           "!<basic>",
+		_genCodeStartLine: children[0]._genCodeStartLine,
+		_genCodeEndLine:   children[0]._genCodeEndLine,
 	})
 	return nil
 }
@@ -301,11 +322,13 @@ func TypeBasic(w *Walker) error {
 func Stmts(w *Walker) error {
 	children := w.Tokens.PopTopN(2)
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "stmts"},
-		Children: children,
-		Type:     "stmts",
-		Payload:  "!<stmt>",
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "stmts"},
+		Children:          children,
+		Type:              "stmts",
+		Payload:           "!<stmt>",
+		_genCodeStartLine: min(children[0]._genCodeStartLine, children[1]._genCodeStartLine),
+		_genCodeEndLine:   max(children[0]._genCodeEndLine, children[1]._genCodeEndLine),
 	})
 	return nil
 }
@@ -313,11 +336,13 @@ func Stmts(w *Walker) error {
 // stmts → ε
 func StmtsEpsilon(w *Walker) error {
 	w.Tokens.Push(&ASTNode{
-		raw:      "",
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "stmts-epsilon"},
-		Children: nil,
-		Type:     "stmts-epsilon",
-		Payload:  "!<stmt>",
+		raw:               "",
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "stmts-epsilon"},
+		Children:          nil,
+		Type:              "stmts-epsilon",
+		Payload:           "!<stmt>",
+		_genCodeStartLine: MAX_START_LINE,
+		_genCodeEndLine:   MIN_START_LINE,
 	})
 	return nil
 }
@@ -326,11 +351,13 @@ func StmtsEpsilon(w *Walker) error {
 func StmtMatchedStmt(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "stmt-matched"},
-		Children: children,
-		Type:     "stmt-matched",
-		Payload:  "!<matched-stmt>",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "stmt-matched"},
+		Children:          children,
+		Type:              "stmt-matched",
+		Payload:           "!<matched-stmt>",
+		_genCodeStartLine: children[0]._genCodeStartLine,
+		_genCodeEndLine:   children[0]._genCodeEndLine,
 	})
 	return nil
 }
@@ -339,11 +366,13 @@ func StmtMatchedStmt(w *Walker) error {
 func StmtUnmatchedStmt(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "stmt-unmatched"},
-		Children: children,
-		Type:     "stmt-unmatched",
-		Payload:  "!<unmatched-stmt>",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "stmt-unmatched"},
+		Children:          children,
+		Type:              "stmt-unmatched",
+		Payload:           "!<unmatched-stmt>",
+		_genCodeStartLine: children[0]._genCodeStartLine,
+		_genCodeEndLine:   children[0]._genCodeEndLine,
 	})
 	return nil
 }
@@ -352,11 +381,13 @@ func StmtUnmatchedStmt(w *Walker) error {
 func StmtDecls(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "stmt-decls"},
-		Children: children,
-		Type:     "stmt-decls",
-		Payload:  "!<decls>",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "stmt-decls"},
+		Children:          children,
+		Type:              "stmt-decls",
+		Payload:           "!<decls>",
+		_genCodeStartLine: children[0]._genCodeStartLine,
+		_genCodeEndLine:   children[0]._genCodeEndLine,
 	})
 	return nil
 }
@@ -365,11 +396,13 @@ func StmtDecls(w *Walker) error {
 func UnmatchedStmtIf(w *Walker) error {
 	children := w.Tokens.PopTopN(5)
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "unmatched-stmt-if"},
-		Children: children,
-		Type:     "stmt-if",
-		Payload:  "!<if>",
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "unmatched-stmt-if"},
+		Children:          children,
+		Type:              "stmt-if",
+		Payload:           "!<if>",
+		_genCodeStartLine: children[2]._genCodeStartLine,
+		_genCodeEndLine:   children[4]._genCodeEndLine,
 	})
 	return nil
 }
@@ -378,11 +411,13 @@ func UnmatchedStmtIf(w *Walker) error {
 func UnmatchedStmtIfElse(w *Walker) error {
 	children := w.Tokens.PopTopN(7)
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "unmatched-stmt-if-else"},
-		Children: children,
-		Type:     "stmt-if-else",
-		Payload:  "!<if-else>",
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "unmatched-stmt-if-else"},
+		Children:          children,
+		Type:              "stmt-if-else",
+		Payload:           "!<if-else>",
+		_genCodeStartLine: children[2]._genCodeStartLine,
+		_genCodeEndLine:   children[6]._genCodeEndLine,
 	})
 	return nil
 }
@@ -392,16 +427,18 @@ func MatchedStmtAssign(w *Walker) error {
 	children := w.Tokens.PopTopN(4)
 	dist := children[0].Token.Val
 	src := children[2].Token.Val
-	w.Emit("mov", dist, src)
+	l := w.Emit("mov", dist, src)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
 			Type: lexer.EXTRA,
 			Val:  "stmt",
 		},
-		Children: children,
-		Type:     "stmt-assign",
-		Payload:  "!copy(!dist:!src)",
+		Children:          children,
+		Type:              "stmt-assign",
+		Payload:           "!copy(!dist:!src)",
+		_genCodeStartLine: min(l, children[0]._genCodeStartLine, children[2]._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
 	return nil
 }
@@ -411,11 +448,13 @@ func MatchedStmtIfElse(w *Walker) error {
 	prevEl, _ := w.Tokens.PeekAtK(7)
 	children := w.Tokens.PopTopN(7)
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "matched-stmt-if-else"},
-		Children: children,
-		Type:     "stmt-if-else",
-		Payload:  "!<if-else>",
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "matched-stmt-if-else"},
+		Children:          children,
+		Type:              "stmt-if-else",
+		Payload:           "!<if-else>",
+		_genCodeStartLine: children[2]._genCodeStartLine,
+		_genCodeEndLine:   children[6]._genCodeEndLine,
 	})
 	if prevEl.Token.SpecificType() != lexer.ReservedWordElse {
 		n := w.Environment.LabelStack.PopTopN(2)
@@ -443,11 +482,13 @@ func MatchedStmtIf(w *Walker) error {
 	prevEl, _ := w.Tokens.PeekAtK(5)
 	children := w.Tokens.PopTopN(5)
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "matched-stmt-if"},
-		Children: children,
-		Type:     "stmt-if",
-		Payload:  "!<if>",
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "matched-stmt-if"},
+		Children:          children,
+		Type:              "stmt-if",
+		Payload:           "!<if>",
+		_genCodeStartLine: children[2]._genCodeStartLine,
+		_genCodeEndLine:   children[4]._genCodeEndLine,
 	})
 	n := w.Environment.LabelStack.PopTopN(2)
 	m := w.Environment.EndIfStmtStack.PopTopN(1)
@@ -463,16 +504,19 @@ func MatchedStmtIf(w *Walker) error {
 func MatchedStmtWhile(w *Walker) error {
 	children := w.Tokens.PopTopN(5)
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "matched-stmt-while"},
-		Children: children,
-		Type:     "stmt-while",
-		Payload:  "!<while>",
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "matched-stmt-while"},
+		Children:          children,
+		Type:              "stmt-while",
+		Payload:           "!<while>",
+		_genCodeStartLine: children[2]._genCodeStartLine,
+		_genCodeEndLine:   children[4]._genCodeEndLine,
 	})
 	n := w.Environment.LabelStack.PopTopN(2)
 	m := w.Environment.EndIfStmtStack.PopTopN(1)
+	fmt.Println(children[2]._genCodeStartLine)
 	w.EmitLabel(n[1], fmt.Sprintf("L%d", m[0]+1), "jmp")
-	w.EmitGoto(m[0], n[0]-1)
+	w.EmitGoto(m[0], children[2]._genCodeStartLine)
 
 	w.ExitLoop(m[0] + 1)
 	return nil
@@ -482,11 +526,13 @@ func MatchedStmtWhile(w *Walker) error {
 func MatchedStmtDoWhile(w *Walker) error {
 	children := w.Tokens.PopTopN(7)
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "matched-stmt-do-while"},
-		Children: children,
-		Type:     "stmt-do-while",
-		Payload:  "!<do-while>",
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "matched-stmt-do-while"},
+		Children:          children,
+		Type:              "stmt-do-while",
+		Payload:           "!<do-while>",
+		_genCodeStartLine: children[1]._genCodeStartLine,
+		_genCodeEndLine:   children[4]._genCodeEndLine,
 	})
 	n := w.Environment.LabelStack.PopTopN(2)
 	m := w.Environment.LoopLabelStack.PopTopN(1)
@@ -500,14 +546,16 @@ func MatchedStmtDoWhile(w *Walker) error {
 // matched_stmt → break ;
 func MatchedStmtBreak(w *Walker) error {
 	children := w.Tokens.PopTopN(2)
+	l := w.AddBreakLabel()
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "matched-stmt-break"},
-		Children: children,
-		Type:     "stmt-break",
-		Payload:  "!<break>",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "matched-stmt-break"},
+		Children:          children,
+		Type:              "stmt-break",
+		Payload:           "!<break>",
+		_genCodeStartLine: l,
+		_genCodeEndLine:   l,
 	})
-	w.AddBreakLabel()
 	return nil
 }
 
@@ -516,11 +564,13 @@ func MatchedStmtBlock(w *Walker) error {
 	matchedStmtBlockIfWhileElse(w)
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "matched-stmt-block"},
-		Children: children,
-		Type:     "stmt-block",
-		Payload:  "!<block>",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "matched-stmt-block"},
+		Children:          children,
+		Type:              "stmt-block",
+		Payload:           "!<block>",
+		_genCodeStartLine: children[0]._genCodeStartLine,
+		_genCodeEndLine:   children[0]._genCodeEndLine,
 	})
 	return nil
 }
@@ -569,9 +619,11 @@ func LocArray(w *Walker) error {
 			Type: lexer.EXTRA,
 			Val:  addrStr,
 		},
-		Children: children,
-		Type:     "loc-array",
-		Payload:  "!dist:!ptr(size=4)",
+		Children:          children,
+		Type:              "loc-array",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: min(loc._genCodeStartLine, num._genCodeStartLine),
+		_genCodeEndLine:   max(loc._genCodeEndLine, num._genCodeEndLine),
 	})
 	return nil
 }
@@ -587,11 +639,13 @@ func LocId(w *Walker) error {
 	}
 	addr = fmt.Sprintf("$(%#x)", i.Address)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: addr},
-		Children: children,
-		Type:     "loc-id",
-		Payload:  "!dist:!ptr(size=4)",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: addr},
+		Children:          children,
+		Type:              "loc-id",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: MAX_START_LINE,
+		_genCodeEndLine:   MIN_START_LINE,
 	})
 	return nil
 }
@@ -603,22 +657,26 @@ func Bool(w *Walker) error {
 	if prev.Token.SpecificType() != lexer.OperatorAssignment {
 		resultAddr := w.SymbolTable.TempAddr(4)
 		resultStr := fmt.Sprintf("$(%#x)", resultAddr)
-		w.Emit("cmp", resultStr, children[0].Token.Val, "0")
+		l := w.Emit("cmp", resultStr, children[0].Token.Val, "0")
 		w.Tokens.Push(&ASTNode{
-			raw:      children[0].raw,
-			Token:    &lexer.Token{Type: lexer.EXTRA, Val: resultStr},
-			Children: children,
-			Type:     "bool",
-			Payload:  "!<bool'>",
+			raw:               children[0].raw,
+			Token:             &lexer.Token{Type: lexer.EXTRA, Val: resultStr},
+			Children:          children,
+			Type:              "bool",
+			Payload:           "!<bool'>",
+			_genCodeStartLine: min(l, children[0]._genCodeStartLine),
+			_genCodeEndLine:   l,
 		})
 		boolLookbackIfWhile(w)
 	} else {
 		w.Tokens.Push(&ASTNode{
-			raw:      children[0].raw,
-			Token:    &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
-			Children: children,
-			Type:     "bool",
-			Payload:  "!<bool'>",
+			raw:               children[0].raw,
+			Token:             &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
+			Children:          children,
+			Type:              "bool",
+			Payload:           "!<bool'>",
+			_genCodeStartLine: children[0]._genCodeStartLine,
+			_genCodeEndLine:   children[0]._genCodeEndLine,
 		})
 	}
 	return nil
@@ -648,17 +706,19 @@ func BoolPrime(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
 	resultStr := fmt.Sprintf("$(%#x)", result)
+	l := w.Emit("or", resultStr, children[0].Token.Val, children[2].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
 			Type: lexer.EXTRA,
 			Val:  resultStr,
 		},
-		Children: children,
-		Type:     "bool-prime",
-		Payload:  "!dist:!ptr(size=4)",
+		Children:          children,
+		Type:              "bool-prime",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: min(l, children[0]._genCodeStartLine, children[2]._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
-	w.Emit("or", resultStr, children[0].Token.Val, children[2].Token.Val)
 	return nil
 }
 
@@ -666,11 +726,13 @@ func BoolPrime(w *Walker) error {
 func BoolPrimeJoin(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
-		Children: children,
-		Type:     "bool-prime-join",
-		Payload:  "!<join>",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
+		Children:          children,
+		Type:              "bool-prime-join",
+		Payload:           "!<join>",
+		_genCodeStartLine: children[0]._genCodeStartLine,
+		_genCodeEndLine:   children[0]._genCodeEndLine,
 	})
 	return nil
 }
@@ -680,17 +742,19 @@ func Join(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
 	resultStr := fmt.Sprintf("$(%#x)", result)
+	l := w.Emit("and", resultStr, children[0].Token.Val, children[2].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
 			Type: lexer.EXTRA,
 			Val:  resultStr,
 		},
-		Children: children,
-		Type:     "join",
-		Payload:  "!dist:!ptr(size=4)",
+		Children:          children,
+		Type:              "join",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: min(l, children[0]._genCodeStartLine, children[2]._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
-	w.Emit("and", resultStr, children[0].Token.Val, children[2].Token.Val)
 	return nil
 }
 
@@ -698,11 +762,13 @@ func Join(w *Walker) error {
 func JoinEquality(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
-		Children: children,
-		Type:     "join-equality",
-		Payload:  "!<equality>",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
+		Children:          children,
+		Type:              "join-equality",
+		Payload:           "!<equality>",
+		_genCodeStartLine: children[0]._genCodeStartLine,
+		_genCodeEndLine:   children[0]._genCodeEndLine,
 	})
 	return nil
 }
@@ -712,6 +778,7 @@ func Equality(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
 	resultStr := fmt.Sprintf("$(%#x)", result)
+	l := w.Emit("eq", resultStr, children[0].Token.Val, children[2].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
@@ -720,10 +787,11 @@ func Equality(w *Walker) error {
 		},
 		Children: children,
 
-		Type:    "equality",
-		Payload: "!dist:!ptr(size=4)",
+		Type:              "equality",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: min(l, children[0]._genCodeStartLine, children[2]._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
-	w.Emit("eq", children[0].Token.Val, children[2].Token.Val)
 	return nil
 }
 
@@ -732,17 +800,19 @@ func NotEquality(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
 	resultStr := fmt.Sprintf("$(%#x)", result)
+	l := w.Emit("ne", resultStr, children[0].Token.Val, children[2].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
 			Type: lexer.EXTRA,
 			Val:  resultStr,
 		},
-		Children: children,
-		Type:     "not-equality",
-		Payload:  "!dist:!ptr(size=4)",
+		Children:          children,
+		Type:              "not-equality",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: min(l, children[0]._genCodeStartLine, children[2]._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
-	w.Emit("ne", children[0].Token.Val, children[2].Token.Val)
 	return nil
 }
 
@@ -750,11 +820,13 @@ func NotEquality(w *Walker) error {
 func EqualityRelational(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
-		Children: children,
-		Type:     "equality-relational",
-		Payload:  "!<rel>",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
+		Children:          children,
+		Type:              "equality-relational",
+		Payload:           "!<rel>",
+		_genCodeStartLine: children[0]._genCodeStartLine,
+		_genCodeEndLine:   children[0]._genCodeEndLine,
 	})
 	return nil
 }
@@ -764,17 +836,19 @@ func RelationalLess(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
 	resultStr := fmt.Sprintf("$(%#x)", result)
+	l := w.Emit("ls", children[0].Token.Val, children[2].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
 			Type: lexer.EXTRA,
 			Val:  resultStr,
 		},
-		Children: children,
-		Type:     "less",
-		Payload:  "!dist:!ptr(size=4)",
+		Children:          children,
+		Type:              "less",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: min(l, children[0]._genCodeStartLine, children[2]._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
-	w.Emit("ls", children[0].Token.Val, children[2].Token.Val)
 	return nil
 }
 
@@ -783,17 +857,19 @@ func RelationalGreater(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
 	resultStr := fmt.Sprintf("$(%#x)", result)
+	l := w.Emit("gt", children[0].Token.Val, children[2].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
 			Type: lexer.EXTRA,
 			Val:  resultStr,
 		},
-		Children: children,
-		Type:     "greater",
-		Payload:  "!dist:!ptr(size=4)",
+		Children:          children,
+		Type:              "greater",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: min(l, children[0]._genCodeStartLine, children[2]._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
-	w.Emit("gt", children[0].Token.Val, children[2].Token.Val)
 	return nil
 }
 
@@ -802,17 +878,19 @@ func RelationalLessEqual(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
 	resultStr := fmt.Sprintf("$(%#x)", result)
+	l := w.Emit("le", children[0].Token.Val, children[2].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
 			Type: lexer.EXTRA,
 			Val:  resultStr,
 		},
-		Children: children,
-		Type:     "less-equal",
-		Payload:  "!dist:!ptr(size=4)",
+		Children:          children,
+		Type:              "less-equal",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: min(l, children[0]._genCodeStartLine, children[2]._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
-	w.Emit("le", children[0].Token.Val, children[2].Token.Val)
 	return nil
 }
 
@@ -821,17 +899,19 @@ func RelationalGreaterEqual(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
 	resultStr := fmt.Sprintf("$(%#x)", result)
+	l := w.Emit("ge", children[0].Token.Val, children[2].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
 			Type: lexer.EXTRA,
 			Val:  resultStr,
 		},
-		Children: children,
-		Type:     "greater-equal",
-		Payload:  "!dist:!ptr(size=4)",
+		Children:          children,
+		Type:              "greater-equal",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: min(l, children[0]._genCodeStartLine, children[2]._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
-	w.Emit("ge", children[0].Token.Val, children[2].Token.Val)
 	return nil
 }
 
@@ -839,11 +919,13 @@ func RelationalGreaterEqual(w *Walker) error {
 func RelationalExpr(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
-		Children: children,
-		Type:     "rel-expr",
-		Payload:  "!<expr>",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
+		Children:          children,
+		Type:              "rel-expr",
+		Payload:           "!<expr>",
+		_genCodeStartLine: children[0]._genCodeStartLine,
+		_genCodeEndLine:   children[0]._genCodeEndLine,
 	})
 	return nil
 }
@@ -853,17 +935,19 @@ func ExprPlus(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
 	resultStr := fmt.Sprintf("$(%#x)", result)
+	l := w.Emit("add", resultStr, children[0].Token.Val, children[2].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
 			Type: lexer.EXTRA,
 			Val:  resultStr,
 		},
-		Children: children,
-		Type:     "plus",
-		Payload:  "!dist:!ptr(size=4)",
+		Children:          children,
+		Type:              "plus",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: min(l, children[0]._genCodeStartLine, children[2]._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
-	w.Emit("add", resultStr, children[0].Token.Val, children[2].Token.Val)
 	return nil
 }
 
@@ -872,17 +956,19 @@ func ExprMinus(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
 	resultStr := fmt.Sprintf("$(%#x)", result)
+	l := w.Emit("sub", resultStr, children[0].Token.Val, children[2].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
 			Type: lexer.EXTRA,
 			Val:  resultStr,
 		},
-		Children: children,
-		Type:     "minus",
-		Payload:  "!dist:!ptr(size=4)",
+		Children:          children,
+		Type:              "minus",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: min(l, children[0]._genCodeStartLine, children[2]._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
-	w.Emit("sub", resultStr, children[0].Token.Val, children[2].Token.Val)
 	return nil
 }
 
@@ -890,11 +976,13 @@ func ExprMinus(w *Walker) error {
 func ExprTerm(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
-		Children: children,
-		Type:     "expr-term",
-		Payload:  "!<term>",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
+		Children:          children,
+		Type:              "expr-term",
+		Payload:           "!<term>",
+		_genCodeStartLine: children[0]._genCodeStartLine,
+		_genCodeEndLine:   children[0]._genCodeEndLine,
 	})
 	return nil
 }
@@ -904,17 +992,19 @@ func TermMult(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
 	resultStr := fmt.Sprintf("$(%#x)", result)
+	l := w.Emit("mul", resultStr, children[0].Token.Val, children[2].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
 			Type: lexer.EXTRA,
 			Val:  resultStr,
 		},
-		Children: children,
-		Type:     "mult",
-		Payload:  "!dist:!ptr(size=4)",
+		Children:          children,
+		Type:              "mult",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: min(l, children[0]._genCodeStartLine, children[2]._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
-	w.Emit("mul", resultStr, children[0].Token.Val, children[2].Token.Val)
 	return nil
 }
 
@@ -923,17 +1013,19 @@ func TermDiv(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
 	resultStr := fmt.Sprintf("$(%#x)", result)
+	l := w.Emit("div", resultStr, children[0].Token.Val, children[2].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
 			Type: lexer.EXTRA,
 			Val:  resultStr,
 		},
-		Children: children,
-		Type:     "div",
-		Payload:  "!dist:!ptr(size=4)",
+		Children:          children,
+		Type:              "div",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: min(l, children[0]._genCodeStartLine, children[2]._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
-	w.Emit("div", resultStr, children[0].Token.Val, children[2].Token.Val)
 	return nil
 }
 
@@ -941,11 +1033,13 @@ func TermDiv(w *Walker) error {
 func TermUnary(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
-		Children: children,
-		Type:     "term-unary",
-		Payload:  "!<unary>",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
+		Children:          children,
+		Type:              "term-unary",
+		Payload:           "!<unary>",
+		_genCodeStartLine: children[0]._genCodeStartLine,
+		_genCodeEndLine:   children[0]._genCodeEndLine,
 	})
 	return nil
 }
@@ -955,17 +1049,19 @@ func UnaryNeg(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	addr := fmt.Sprintf("$(%#x)", result)
 	children := w.Tokens.PopTopN(2)
+	l := w.Emit(addr, "neg", children[1].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
 			Type: lexer.EXTRA,
 			Val:  fmt.Sprintf("$(%#x)", result),
 		},
-		Children: children,
-		Type:     "neg",
-		Payload:  "!dist:!ptr(size=4)",
+		Children:          children,
+		Type:              "neg",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: min(l, children[1]._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
-	w.Emit(addr, "neg", children[1].Token.Val)
 	return nil
 }
 
@@ -974,17 +1070,19 @@ func UnaryNot(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	addr := fmt.Sprintf("$(%#x)", result)
 	children := w.Tokens.PopTopN(2)
+	l := w.Emit(addr, "not", children[1].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
 			Type: lexer.EXTRA,
 			Val:  fmt.Sprintf("$(%#x)", result),
 		},
-		Children: children,
-		Type:     "not",
-		Payload:  "!dist:!ptr(size=4)",
+		Children:          children,
+		Type:              "not",
+		Payload:           "!dist:!ptr(size=4)",
+		_genCodeStartLine: min(l, children[1]._genCodeStartLine),
+		_genCodeEndLine:   l,
 	})
-	w.Emit(addr, "not", children[1].Token.Val)
 	return nil
 }
 
@@ -992,11 +1090,13 @@ func UnaryNot(w *Walker) error {
 func UnaryFactor(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
-		Children: children,
-		Type:     "unary-factor",
-		Payload:  "!<factor>",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
+		Children:          children,
+		Type:              "unary-factor",
+		Payload:           "!<factor>",
+		_genCodeStartLine: children[0]._genCodeStartLine,
+		_genCodeEndLine:   children[0]._genCodeEndLine,
 	})
 	return nil
 }
@@ -1005,11 +1105,13 @@ func UnaryFactor(w *Walker) error {
 func FactorBool(w *Walker) error {
 	children := w.Tokens.PopTopN(3)
 	w.Tokens.Push(&ASTNode{
-		raw:      joinChildren(children),
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: children[1].Token.Val},
-		Children: children,
-		Type:     "factor-bool",
-		Payload:  "!<bool>",
+		raw:               joinChildren(children),
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: children[1].Token.Val},
+		Children:          children,
+		Type:              "factor-bool",
+		Payload:           "!<bool>",
+		_genCodeStartLine: children[1]._genCodeStartLine,
+		_genCodeEndLine:   children[1]._genCodeEndLine,
 	})
 	return nil
 }
@@ -1018,11 +1120,13 @@ func FactorBool(w *Walker) error {
 func FactorLoc(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
-		Children: children,
-		Type:     "factor-loc",
-		Payload:  "!<loc>",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: children[0].Token.Val},
+		Children:          children,
+		Type:              "factor-loc",
+		Payload:           "!<loc>",
+		_genCodeStartLine: MAX_START_LINE,
+		_genCodeEndLine:   MIN_START_LINE,
 	})
 	return nil
 }
@@ -1031,11 +1135,13 @@ func FactorLoc(w *Walker) error {
 func FactorNum(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: children[0].raw},
-		Children: children,
-		Type:     "factor-num",
-		Payload:  "!const(size=4)",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: children[0].raw},
+		Children:          children,
+		Type:              "factor-num",
+		Payload:           "!const(size=4)",
+		_genCodeStartLine: MAX_START_LINE,
+		_genCodeEndLine:   MIN_START_LINE,
 	})
 	return nil
 }
@@ -1044,37 +1150,43 @@ func FactorNum(w *Walker) error {
 func FactorReal(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      children[0].raw,
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: children[0].raw},
-		Children: children,
-		Type:     "factor-real",
-		Payload:  "!const(size=8)",
+		raw:               children[0].raw,
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: children[0].raw},
+		Children:          children,
+		Type:              "factor-real",
+		Payload:           "!const(size=8)",
+		_genCodeStartLine: MAX_START_LINE,
+		_genCodeEndLine:   MIN_START_LINE,
 	})
 	return nil
 }
 
 // factor → true
 func FactorTrue(w *Walker) error {
-	chidren := w.Tokens.PopTopN(1)
+	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      "true",
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "1"},
-		Children: chidren,
-		Type:     "factor-true",
-		Payload:  "!const(size=1)",
+		raw:               "true",
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "1"},
+		Children:          children,
+		Type:              "factor-true",
+		Payload:           "!const(size=1)",
+		_genCodeStartLine: MAX_START_LINE,
+		_genCodeEndLine:   MIN_START_LINE,
 	})
 	return nil
 }
 
 // factor → false
 func FactorFalse(w *Walker) error {
-	chidren := w.Tokens.PopTopN(1)
+	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
-		raw:      "false",
-		Token:    &lexer.Token{Type: lexer.EXTRA, Val: "0"},
-		Children: chidren,
-		Type:     "factor-false",
-		Payload:  "!const(size=1)",
+		raw:               "false",
+		Token:             &lexer.Token{Type: lexer.EXTRA, Val: "0"},
+		Children:          children,
+		Type:              "factor-false",
+		Payload:           "!const(size=1)",
+		_genCodeStartLine: MAX_START_LINE,
+		_genCodeEndLine:   MIN_START_LINE,
 	})
 	return nil
 }
@@ -1104,3 +1216,8 @@ func getInitialValue(token *lexer.Token) string {
 	}
 	return "<nullptr>"
 }
+
+const (
+	MAX_START_LINE = 0x7FFFFFFF
+	MIN_START_LINE = 0x80000000
+)

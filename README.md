@@ -42,3 +42,4 @@ cover them (there may be some bugs).
 
 1. [Lexer](/docs/lexer.md)
 2. [Parser](/docs/parser.md)
+3. [Intermediate Code Generation](/docs/intermediate-code-generation.md)

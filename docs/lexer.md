@@ -1,6 +1,6 @@
 # Lexer
 
-## Purpose of the Lab
+## Purpose of this Lab
 This lab requires students to write lexical analysis functions to identify individual meaningful words from the input source code, including basic reserved words, identifiers, constants, operators, and delimiters. The goal of lexical analysis is to divide the input source code into a sequence of basic symbols (tokens) and filter out comments and whitespace such as spaces and line breaks. Lexical analysis provides the token sequence for the next phase, syntax analysis.
 
 ## Tasks

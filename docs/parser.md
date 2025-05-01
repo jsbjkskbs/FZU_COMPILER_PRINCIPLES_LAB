@@ -1,6 +1,6 @@
 # Parser
 
-## Purpose of the Lab
+## Purpose of this Lab
 
 Develop an LR(1) parsing program based on the given grammar to analyze any input symbol string. The primary goal of this experiment is to deepen the understanding of the LR(1) parsing method.
 
