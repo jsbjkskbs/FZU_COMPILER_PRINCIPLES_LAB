@@ -930,7 +930,7 @@ func RelationalExpr(w *Walker) error {
 	return nil
 }
 
-// expr -> expr + term
+// expr → expr + term
 func ExprPlus(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
@@ -951,7 +951,7 @@ func ExprPlus(w *Walker) error {
 	return nil
 }
 
-// expr -> expr - term
+// expr → expr - term
 func ExprMinus(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
@@ -972,7 +972,7 @@ func ExprMinus(w *Walker) error {
 	return nil
 }
 
-// expr -> term
+// expr → term
 func ExprTerm(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
@@ -987,7 +987,7 @@ func ExprTerm(w *Walker) error {
 	return nil
 }
 
-// term -> term * unary
+// term → term * unary
 func TermMult(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
@@ -1008,7 +1008,7 @@ func TermMult(w *Walker) error {
 	return nil
 }
 
-// term -> term / unary
+// term → term / unary
 func TermDiv(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
@@ -1029,7 +1029,7 @@ func TermDiv(w *Walker) error {
 	return nil
 }
 
-// term -> unary
+// term → unary
 func TermUnary(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{
@@ -1044,7 +1044,7 @@ func TermUnary(w *Walker) error {
 	return nil
 }
 
-// unary -> -unary
+// unary → -unary
 func UnaryNeg(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	addr := fmt.Sprintf("$(%#x)", result)
@@ -1065,7 +1065,7 @@ func UnaryNeg(w *Walker) error {
 	return nil
 }
 
-// unary -> !unary
+// unary → !unary
 func UnaryNot(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	addr := fmt.Sprintf("$(%#x)", result)
@@ -1086,7 +1086,7 @@ func UnaryNot(w *Walker) error {
 	return nil
 }
 
-// unary -> factor
+// unary → factor
 func UnaryFactor(w *Walker) error {
 	children := w.Tokens.PopTopN(1)
 	w.Tokens.Push(&ASTNode{

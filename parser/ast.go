@@ -26,6 +26,7 @@ type ASTNode struct {
 
 type ASTNodeType int
 
+// TreeString generates a string representation of the AST node and its children.
 func (a *ASTNode) TreeString(indent int) string {
 	result := strings.Repeat("\t", indent)
 	result += fmt.Sprintf("Raw: %s | ", a.raw)
@@ -38,6 +39,9 @@ func (a *ASTNode) TreeString(indent int) string {
 	return result
 }
 
+// Token2ASTNode converts a lexer token to an AST node.
+// It creates a new AST node with the token's value and type, and initializes
+// its children to an empty slice. The node's payload is set to nil.
 func (p *Parser) Token2ASTNode(token *lexer.Token) *ASTNode {
 	return &ASTNode{
 		raw:      token.Val,

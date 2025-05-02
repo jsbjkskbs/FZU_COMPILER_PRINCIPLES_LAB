@@ -146,12 +146,14 @@ func (w *Walker) Reset() {
 	w.States.Push(0)
 }
 
+// NewLabel creates a new label and pushes it onto the end if statement stack.
 func (w *Walker) NewLabel() int {
 	w.ThreeAddress = append(w.ThreeAddress, fmt.Sprintf("L%-8d %8s", len(w.ThreeAddress), "xxx"))
 	w.Environment.LabelStack.Push(len(w.ThreeAddress) - 1)
 	return len(w.ThreeAddress) - 1
 }
 
+// Emit emits a three-address code instruction with the specified operation,
 func (w *Walker) Emit(op string, dist string, args ...any) int {
 	line := fmt.Sprintf("L%-8d %8s %16s", len(w.ThreeAddress), op, dist)
 	for _, arg := range args {
@@ -161,17 +163,20 @@ func (w *Walker) Emit(op string, dist string, args ...any) int {
 	return len(w.ThreeAddress) - 1
 }
 
+// NewGotoLabel creates a new goto label and pushes it onto the end if statement stack.
 func (w *Walker) NewGotoLabel() int {
 	w.ThreeAddress = append(w.ThreeAddress, fmt.Sprintf("L%-8d %8s", len(w.ThreeAddress), "yyy"))
 	w.Environment.EndIfStmtStack.Push(len(w.ThreeAddress) - 1)
 	return len(w.ThreeAddress) - 1
 }
 
+// EmitGoto emits a jump instruction to the specified label.
 func (w *Walker) EmitGoto(label int, distLabel int) {
 	line := fmt.Sprintf("L%-8d %8s %16s", label, "jmp", fmt.Sprintf("L%d", distLabel))
 	w.ThreeAddress[label] = line
 }
 
+// EmitLabel emits a label with the specified label number, distance, operation, and arguments.
 func (w *Walker) EmitLabel(label int, dist string, op string, args ...any) {
 	line := fmt.Sprintf("L%-8d %8s %16s", label, op, dist)
 	for _, arg := range args {
@@ -180,6 +185,9 @@ func (w *Walker) EmitLabel(label int, dist string, op string, args ...any) {
 	w.ThreeAddress[label] = line
 }
 
+// AdjustJMP adjusts the jump instruction at the specified label to point to the new jump target.
+// It updates the instruction at the label to use the new jump target.
+// Just for `do-while`.
 func (w *Walker) AdjustJMP(label int, jmp int) error {
 	line := w.ThreeAddress[label]
 	parts := strings.Fields(line)
@@ -193,15 +201,18 @@ func (w *Walker) AdjustJMP(label int, jmp int) error {
 	return nil
 }
 
+// GetCurrentLabelCount returns the current label count.
 func (w *Walker) GetCurrentLabelCount() int {
 	return len(w.ThreeAddress)
 }
 
+// EnterLoop pushes a new break label stack onto the environment's break label stack.
 func (w *Walker) EnterLoop() {
 	a := make([]int, 0)
 	w.Environment.BreakLabelStack.Push(&a)
 }
 
+// AddBreakLabel adds a break label to the current loop.
 func (w *Walker) AddBreakLabel() int {
 	if w.Environment.BreakLabelStack.IsEmpty() {
 		println("AddBreakLabel: BreakLabelStack is empty")
@@ -214,6 +225,8 @@ func (w *Walker) AddBreakLabel() int {
 	return len(w.ThreeAddress) - 1
 }
 
+// ExitLoop emits a jump instruction to exit the current loop.
+// It pops the break label stack and backfills the labels with the exit line.
 func (w *Walker) ExitLoop(exit int) {
 	if w.Environment.BreakLabelStack.IsEmpty() {
 		println("ExitLoop: BreakLabelStack is empty")

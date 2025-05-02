@@ -23,6 +23,13 @@ type LRTable struct {
 	GotoTable   GotoTable
 }
 
+// Insert populates the LR table with actions and transitions based on the given state and grammar.
+// It iterates through the items in the state and determines the appropriate action
+// (SHIFT, REDUCE, ACCEPT) based on the grammar rules. It also updates the Goto table
+// for non-terminal symbols. The function handles conflicts by checking for existing actions
+// and reporting them if necessary.
+// The function takes a state and a grammar as input and returns an error if any conflicts are found.
+// It uses the state index and the lookahead symbol to determine the appropriate action.
 func (t LRTable) Insert(state *State, grammar *Grammar) {
 	var err error
 	for _, item := range state.Items {
@@ -56,10 +63,13 @@ type Action struct {
 
 type ActionTable map[int]map[Terminal]Action
 
+// Copy creates a deep copy of the ActionTable.
 func (t ActionTable) Copy() ActionTable {
 	return maps.Clone(t)
 }
 
+// Register adds an action to the action table for a given state and terminal.
+// It checks for conflicts and returns an error if a conflict is found.
 func (t ActionTable) Register(stateIndex int, action Action, terminal Terminal) error {
 	if t[stateIndex] == nil {
 		t[stateIndex] = make(map[Terminal]Action)
@@ -83,6 +93,8 @@ func (t GotoTable) Copy() GotoTable {
 	return maps.Clone(t)
 }
 
+// Register adds a transition to the Goto table for a given state and non-terminal symbol.
+// It checks for conflicts and returns an error if a conflict is found.
 func (t GotoTable) Register(stateIndex, nextStateIndex int, symbol Symbol) error {
 	if t[stateIndex] == nil {
 		t[stateIndex] = make(map[Symbol]int)
@@ -188,6 +200,7 @@ func (st *SymbolTable) EnterScope() error {
 	return nil
 }
 
+// ExitScope exits the current scope and sets the parent scope as the current scope.
 func (st *SymbolTable) ExitScope() error {
 	if st.CurrentScope == nil {
 		return fmt.Errorf("no scope to exit")
@@ -241,6 +254,9 @@ func (st *SymbolTable) Register(item *SymbolTableItem) (int, error) {
 	return item.Address, nil
 }
 
+// GetAddress returns the address of the specified variable in the symbol table.
+// It looks up the variable in the current scope and its parent scopes until it finds it or returns an error.
+// It returns the address of the variable and an error if any.
 func (st *SymbolTable) ArrayAddress(variable string, offset int) (int, int, error) {
 	if st.CurrentScope == nil {
 		return -1, -1, fmt.Errorf("no scope to lookup item")
@@ -275,6 +291,9 @@ func (st *SymbolTable) Lookup(variable string) (item *SymbolTableItem, findInCur
 	return nil, false, fmt.Errorf("item %s not found in any scope", variable)
 }
 
+// TempAddr generates a temporary address for a variable in the symbol table.
+// It uses the current address counter and increments it based on the size of the variable.
+// It returns the address of the temporary variable.
 func (st *SymbolTable) TempAddr(size int) int {
 	addr := st.addrCounter
 	st.addrCounter += size / 4
