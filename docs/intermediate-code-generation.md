@@ -398,9 +398,9 @@ Hence, the `ε` production of `decls` can serve as the timing for generating pla
 
 ##### Backfilling for Simple If Statements
 
-When processing the conditional expression of an `if` statement and generating related jump instructions, the compiler has not yet fully analyzed the entire `if` statement block and subsequent code. For example, in the first line of the diagram, the `jnz` (jump if not zero) instruction is generated, but its jump target address (corresponding to the end of the `if` statement block) is still unknown.
+When processing the conditional expression of an `if` statement and generating jump-related intermediate code, the compiler has not yet fully analyzed the entire `if` statement block and subsequent code. For example, in line 2 of the diagram, the `jmp` instruction's target address (corresponding to the end of the `if` statement block) cannot be determined at the time of generation.
 
-The backfilling mechanism can handle such cases. Placeholder addresses for jump targets are reserved initially. Once the `if` statement block is fully analyzed and the actual jump target location (e.g., the line number corresponding to the end of the `if` statement block) is determined, the correct address is filled in. For instance, in the first line of the diagram, the target address `$(dist0)` of the `jnz` instruction and the target address of the second line `jmp` (dashed line) are initially left blank and later backfilled when the necessary information becomes available.
+We can use a backfilling mechanism to handle such cases. Initially, the target address of the jump instruction is left blank. Later, after analyzing the `if` statement block and determining the actual location of the jump target (e.g., the code line number corresponding to the end of the `if` statement block), the correct address is filled in. For instance, in line 2 of the diagram, the `jmp` instruction's target address (dashed line) and the target address of the `jmp` instruction in line 6 (dashed line) are initially left blank and later completed through backfilling once sufficient information is available.
 
 ![Simple If Statement Code Generation Example - Part 1](/docs/img/intermediate-code-generation/3.png)
 
