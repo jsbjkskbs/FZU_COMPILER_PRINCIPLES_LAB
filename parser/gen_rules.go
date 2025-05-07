@@ -556,7 +556,6 @@ func MatchedStmtWhile(w *Walker) error {
 	})
 	n := w.Environment.LabelStack.PopTopN(2)
 	m := w.Environment.EndIfStmtStack.PopTopN(1)
-	fmt.Println(children[2]._genCodeStartLine)
 	w.EmitLabel(n[1], fmt.Sprintf("L%d", m[0]+1), "jmp")
 	w.EmitGoto(m[0], children[2]._genCodeStartLine)
 

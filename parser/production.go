@@ -104,16 +104,6 @@ var Productions = []Production{
 		Body: []Symbol{"{", "decls", "}"},
 		Rule: GenRules.BlockDecls,
 	},
-	{
-		Head: "block",
-		Body: []Symbol{"{", "stmts", "}"},
-		Rule: GenRules.BlockStmts,
-	},
-	{
-		Head: "block",
-		Body: []Symbol{"{", "}"},
-		Rule: GenRules.BlockEpsilon,
-	},
 	// decls → decls decl | ε
 	{
 		Head: "decls",
