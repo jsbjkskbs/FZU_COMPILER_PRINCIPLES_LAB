@@ -90,6 +90,32 @@ var GenRules = struct {
 	FactorFalse:            FactorFalse,
 }
 
+type _GenRuleArrayPayload struct {
+	Variable  string
+	BasicType *lexer.Token
+	Dimension []int
+}
+
+func (_GenRuleArrayPayload) String() string {
+	return "!<array>"
+}
+
+func (g _GenRuleArrayPayload) GetDimension() []int {
+	return g.Dimension
+}
+
+func (g _GenRuleArrayPayload) GetArraySize() int {
+	size := 1
+	for _, dim := range g.Dimension {
+		size *= dim
+	}
+	return size
+}
+
+func (g _GenRuleArrayPayload) GetAllocSize(base int) int {
+	return base * g.GetArraySize()
+}
+
 func debugPrintWhenRuleTriggered(w *Walker) error {
 	fmt.Println("Rule triggered")
 	fmt.Println("Current states:", w.States)
@@ -263,40 +289,56 @@ func declBasic(w *Walker, basic *ASTNode, id *ASTNode) int {
 }
 
 func declArray(w *Walker, array *ASTNode, id *ASTNode) int {
-	basic, num := array.Children[0], array.Children[2]
-	if num.Token.Type != lexer.INTEGER {
-		fmt.Println("Error: Array size must be an integer")
-		return -1
-	}
-	size, err := strconv.Atoi(num.Token.Val)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
+	payload := array.Payload.(*_GenRuleArrayPayload)
+	if payload == nil {
+		fmt.Println("Error: Array dimension is nil")
 		return -1
 	}
 	item := &SymbolTableItem{
 		Variable:         id.Token.Val,
 		VariableSize:     4, // size of pointer
-		ArraySize:        size,
-		ArrayElementSize: basic.Token.AllocSize(),
+		ArraySize:        payload.GetArraySize(),
+		ArrayElementSize: payload.BasicType.AllocSize(),
+		Dimension:        payload.GetDimension(),
 		Type:             SymbolTableItemTypeArray,
-		UnderlyingType:   fmt.Sprintf("!ptr<%s>", basic.Token.SpecificType().ToString()),
+		UnderlyingType:   fmt.Sprintf("!ptr<%s>", payload.BasicType.SpecificType().ToString()),
 	}
 	addr, err := w.SymbolTable.Register(item)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	}
-	return w.Emit("alloc", fmt.Sprintf("$(%#x)", addr), strconv.Itoa(item.ArrayElementSize*item.ArraySize), getInitialValue(basic.Token))
+	return w.Emit("alloc", fmt.Sprintf("$(%#x)", addr), strconv.Itoa(item.ArrayElementSize*item.ArraySize), getInitialValue(payload.BasicType))
 }
 
 // type → type [ num ]
 func TypeArray(w *Walker) error {
 	children := w.Tokens.PopTopN(4)
+	if children[2].Token.Type != lexer.INTEGER {
+		fmt.Println("Error: Array size must be an integer")
+	}
+	size, err := strconv.Atoi(children[2].Token.Val)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		size = -1
+	}
+	var dimension []int
+	var basicType *lexer.Token
+	var variable string
+	if payload, ok := children[0].Payload.(*_GenRuleArrayPayload); ok {
+		dimension = append(payload.Dimension, size)
+		basicType = payload.BasicType
+		variable = payload.Variable
+	} else {
+		dimension = []int{size}
+		basicType = children[0].Token
+		variable = children[0].Token.Val
+	}
 	w.Tokens.Push(&ASTNode{
 		raw:               joinChildren(children),
 		Token:             &lexer.Token{Type: lexer.EXTRA, Val: fmt.Sprintf("%s[%s]", children[0].raw, children[2].raw)},
 		Children:          children,
 		Type:              "type-array",
-		Payload:           "!<array>",
+		Payload:           &_GenRuleArrayPayload{Dimension: dimension, BasicType: basicType, Variable: variable},
 		_genCodeStartLine: min(children[0]._genCodeStartLine, children[2]._genCodeStartLine),
 		_genCodeEndLine:   max(children[0]._genCodeEndLine, children[2]._genCodeEndLine),
 	})
@@ -598,21 +640,30 @@ func matchedStmtBlockIfWhileElse(w *Walker) {
 func LocArray(w *Walker) error {
 	children := w.Tokens.PopTopN(4)
 	loc, num := children[0], children[2]
-	addrStr := "$(nullptr)"
-	id := loc.Children[0].Token.Val
-	size, err := strconv.Atoi(num.Token.Val)
+	index, err := strconv.Atoi(num.Token.Val)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
+		index = -1
 	}
-	addr, arrSize, err := w.SymbolTable.ArrayAddress(id, size)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
+	var dimension []int
+	var variable string
+	var addr int
+	if payload, ok := loc.Payload.(*_GenRuleArrayPayload); ok {
+		dimension = append(payload.Dimension, index)
+		variable = payload.Variable
+		addr, _, err = w.SymbolTable.ArrayAddress(variable, dimension)
 	} else {
-		addrStr = fmt.Sprintf("$(%#x)", addr)
+		dimension = []int{index}
+		variable = loc.Children[0].raw
+		addr, _, err = w.SymbolTable.ArrayAddress(variable, dimension)
 	}
-	if size > arrSize {
-		fmt.Printf("Error: Array index out of bounds for %s[%d]\n", id, size)
+
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
 	}
+
+	addrStr := fmt.Sprintf("$(%#x)", addr)
+
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
@@ -621,7 +672,7 @@ func LocArray(w *Walker) error {
 		},
 		Children:          children,
 		Type:              "loc-array",
-		Payload:           "!dist:!ptr(size=4)",
+		Payload:           &_GenRuleArrayPayload{Dimension: dimension, Variable: variable},
 		_genCodeStartLine: min(loc._genCodeStartLine, num._genCodeStartLine),
 		_genCodeEndLine:   max(loc._genCodeEndLine, num._genCodeEndLine),
 	})
@@ -878,7 +929,7 @@ func RelationalLessEqual(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
 	resultStr := fmt.Sprintf("$(%#x)", result)
-	l := w.Emit("le", children[0].Token.Val, children[2].Token.Val)
+	l := w.Emit("le", resultStr, children[0].Token.Val, children[2].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{
@@ -899,7 +950,7 @@ func RelationalGreaterEqual(w *Walker) error {
 	result := w.SymbolTable.TempAddr(4)
 	children := w.Tokens.PopTopN(3)
 	resultStr := fmt.Sprintf("$(%#x)", result)
-	l := w.Emit("ge", children[0].Token.Val, children[2].Token.Val)
+	l := w.Emit("ge", resultStr, children[0].Token.Val, children[2].Token.Val)
 	w.Tokens.Push(&ASTNode{
 		raw: joinChildren(children),
 		Token: &lexer.Token{

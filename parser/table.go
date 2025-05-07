@@ -130,6 +130,7 @@ type SymbolTableItem struct {
 
 	ArraySize        int
 	ArrayElementSize int
+	Dimension        []int
 }
 
 type SymbolTableItemType string
@@ -254,10 +255,44 @@ func (st *SymbolTable) Register(item *SymbolTableItem) (int, error) {
 	return item.Address, nil
 }
 
-// GetAddress returns the address of the specified variable in the symbol table.
+func (st *SymbolTable) ArrayAddress(variable string, dimension []int) (int, int, error) {
+	if st.CurrentScope == nil {
+		return -1, -1, fmt.Errorf("no scope to lookup item")
+	}
+	item, _, err := st.Lookup(variable)
+	if err != nil {
+		return -1, -1, err
+	}
+	if item.Type != SymbolTableItemTypeArray {
+		return -1, -1, fmt.Errorf("item %s is not an array", variable)
+	}
+	if len(dimension) != len(item.Dimension) {
+		for i := len(dimension); i < len(item.Dimension); i++ {
+			dimension = append(dimension, 0)
+		}
+	}
+	offset := 0
+	for i, dim := range dimension {
+		if dim < 0 || dim >= item.Dimension[i] {
+			return -1, -1, fmt.Errorf("index out of bounds for dimension %d of item %s", i, variable)
+		}
+		multiplier := 1
+		for j := i + 1; j < len(item.Dimension); j++ {
+			multiplier *= item.Dimension[j]
+		}
+		offset += dim * multiplier
+	}
+
+	if offset < 0 || offset >= item.ArraySize {
+		return -1, -1, fmt.Errorf("index out of bounds for item %s", variable)
+	}
+	return item.Address + (item.ArrayElementSize * offset / 4), item.ArraySize, nil
+}
+
+// arrayAddress returns the address of the specified variable in the symbol table.
 // It looks up the variable in the current scope and its parent scopes until it finds it or returns an error.
 // It returns the address of the variable and an error if any.
-func (st *SymbolTable) ArrayAddress(variable string, offset int) (int, int, error) {
+func (st *SymbolTable) arrayAddress(variable string, offset int) (int, int, error) {
 	if st.CurrentScope == nil {
 		return -1, -1, fmt.Errorf("no scope to lookup item")
 	}
