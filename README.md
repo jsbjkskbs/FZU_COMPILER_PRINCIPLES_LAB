@@ -8,6 +8,19 @@
 English | <a href="README.zh.md">中文</a>
 </div>
 
+<div style="display: flex; flex-direction: row; isolation: isolate; width: 100%; height: 8rem; background: #29292c; border-radius: 0.75rem; overflow: hidden; font-size: 1.25rem; padding: 0.5rem 0.5rem; margin-top: 2rem;">
+   <div style="width: 0.5rem; height: 100%; background: linear-gradient(to bottom, #2eadff, #3d83ff, #7e61ff); border-radius: 0.5rem;">
+   </div>
+   <div style="flex: 1; padding: 0.5rem; color: #ffffff;line-height: 1.5rem;">
+         <div style="font-size: 1.5rem; font-weight: bold; color: #2eadff;"> 
+            Notification to FZUer
+         </div>
+         <div style="flex: 1; padding: 2rem 0.5rem; color: #ffffff; line-height: 1.5rem;">
+            FZUer, click there! 😋👉 <a href="/docs/note.md"> Note.md </a>
+         </div>
+   </div>
+</div>
+
 # Introduction
 
 ## What's this?
