@@ -114,9 +114,9 @@
 
 设计上，我做了一个 trick，通过语法栈特征来完成继承属性往综合属性的传递。
 
-<div style="font-size: larger; font-weight: bolder; text-align: center; color: red;">不要这么做！！！</div>
+<div style="text-align: center;">不要这么做！！！</div>
 
-<div style="font-size: 4px; color: gray; margin: 24px 0;" title="细节ppt小字😋">好吧，你也可以这么做</div>
+<sub title="细节ppt小字😋">好吧，你也可以这么做</sub>
 
 对于如下包含继承属性的语法规则：
 
@@ -135,7 +135,7 @@ Placeholder → ε {B.Action(nullptr)}
 
 这样做的好处是：
 1. 你可以完全默认在规约操作发生时执行继承属性和综合属性的动作（这是符合 LR 分析过程的）
-2. <span style="color: lightgreen;"> 这是课本的操作（虽然老师估计也不会细看） </span>
+2. ✔这是课本的操作（虽然老师估计也不会细看）
 
 LR 分析过程中，我还用 AST 来记录上下文信息，我还是比较**推荐**这么做的。
 
